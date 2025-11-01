@@ -108,9 +108,11 @@ const toolInputParser = z.object({
   loanTerm: z.number().optional(),
 });
 
+const TOOL_NAME = "mortgage-calculator-text";
+
 const tools: Tool[] = [
   {
-    name: "mortgage-calculator-text",
+    name: TOOL_NAME,
     description:
       "Provide a quick textual mortgage summary. This tool returns plain text only and does not render a widget.",
     inputSchema: toolInputSchema,
@@ -173,6 +175,16 @@ function createMortgageCalculatorServer(): Server {
       console.log("Full request object:", JSON.stringify(request, null, 2));
       
       try {
+        if (request.params.name !== TOOL_NAME) {
+          logAnalytics("tool_call_error", {
+            error: "Unknown tool",
+            toolName: request.params.name,
+          });
+          throw new Error(
+            `Unknown tool name "${request.params.name}". Refresh the connector schema to use "${TOOL_NAME}".`
+          );
+        }
+
         let args;
         try {
           args = toolInputParser.parse(request.params.arguments ?? {});
