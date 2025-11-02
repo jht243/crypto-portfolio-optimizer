@@ -486,31 +486,29 @@
           }
         }
 
-        function monthly_mi_conventional(principal_t, home_value, pmi_pct) {
-          const hv = clampNonNegative(home_value);
-          if (hv === 0) {
-            return 0;
-          }
-
+        function monthly_mi(principal_t, loan_type, home_value, pmi_pct, annual_mi_pct) {
           const principal = clampNonNegative(principal_t);
-          const ltv = principal / hv;
-          if (ltv <= 0.8 + ZERO_TOLERANCE) {
-            return 0;
+          const hv = clampNonNegative(home_value);
+
+          switch (loan_type) {
+            case "conventional":
+              if (hv === 0) return 0;
+              const ltv = principal / hv;
+              if (ltv <= 0.8) return 0;
+              return (clampNonNegative(pmi_pct) / MONTHS_IN_YEAR) * principal;
+
+            case "FHA":
+              return (clampNonNegative(annual_mi_pct) / MONTHS_IN_YEAR) * principal;
+
+            case "VA":
+              return 0;
+
+            case "USDA":
+              return (clampNonNegative(annual_mi_pct) / MONTHS_IN_YEAR) * principal;
+
+            default:
+              return 0;
           }
-
-          return principal * (clampNonNegative(pmi_pct) / MONTHS_IN_YEAR);
-        }
-
-        function monthly_mi_fha(principal_t, annual_mi_pct) {
-          return clampNonNegative(principal_t) * (clampNonNegative(annual_mi_pct) / MONTHS_IN_YEAR);
-        }
-
-        function monthly_mi_usda(principal_t, annual_mi_pct) {
-          return clampNonNegative(principal_t) * (clampNonNegative(annual_mi_pct) / MONTHS_IN_YEAR);
-        }
-
-        function monthly_mi_va() {
-          return 0;
         }
 
         const createStartDate = (start_month, start_year) =>
@@ -527,13 +525,19 @@
           tax_monthly,
           ins_monthly,
           hoa_monthly,
-          monthly_mi_fn,
           home_value,
+          loan_type,
+          pmi_pct,
+          annual_mi_pct,
           p_and_i,
           extra_principal_monthly = 0,
           extra_start_month_index = 0
         ) {
-          const schedule = [];
+          let principal = clampNonNegative(principal_0);
+          let currentDate = createStartDate(start_month, start_year);
+          const totalPeriods = Math.max(Math.round(toNumber(n)), 0);
+          const extraStartIndex = Math.max(Math.round(toNumber(extra_start_month_index)), 0);
+
           const totals = {
             interest: 0,
             tax: 0,
@@ -541,46 +545,33 @@
             hoa: 0,
             mi: 0,
             principal: 0,
-            extra_principal: 0,
             payments: 0,
           };
 
-          let principal = clampNonNegative(principal_0);
-          let currentDate = createStartDate(start_month, start_year);
-          const totalPeriods = Math.max(Math.round(toNumber(n)), 0);
-          const extraStartIndex = Math.max(Math.round(toNumber(extra_start_month_index)), 0);
-          const taxMonthly = clampNonNegative(tax_monthly);
-          const insMonthly = clampNonNegative(ins_monthly);
-          const hoaMonthly = clampNonNegative(hoa_monthly);
-          const extraMonthly = clampNonNegative(extra_principal_monthly);
+          const schedule = [];
 
           for (let t = 0; t < totalPeriods && principal > ZERO_TOLERANCE; t += 1) {
             const interest = principal * clampNonNegative(i_m);
-            const scheduledPrincipalCandidate = Math.max(p_and_i - interest, 0);
-            const principal_scheduled = Math.min(scheduledPrincipalCandidate, principal);
+            const principal_sched = Math.max(p_and_i - interest, 0);
 
-            const wantsExtra = t >= extraStartIndex ? extraMonthly : 0;
-            const extra_remaining_capacity = Math.max(principal - principal_scheduled, 0);
-            const extra_principal = Math.min(wantsExtra, extra_remaining_capacity);
+            const mi = monthly_mi(principal, loan_type, home_value, pmi_pct, annual_mi_pct);
 
-            const mi = clampNonNegative(monthly_mi_fn(principal, home_value));
-            const tax = taxMonthly;
-            const ins = insMonthly;
-            const hoa = hoaMonthly;
+            const tax = clampNonNegative(tax_monthly);
+            const ins = clampNonNegative(ins_monthly);
+            const hoa_v = clampNonNegative(hoa_monthly);
 
-            const principal_reduction = Math.min(principal_scheduled + extra_principal, principal);
-            const actual_p_and_i = interest + Math.max(principal_reduction - extra_principal, 0);
-            const total_payment = actual_p_and_i + mi + tax + ins + hoa + extra_principal;
-            const closing_balance = clampNonNegative(principal - principal_reduction);
+            const extra = t >= extraStartIndex ? clampNonNegative(extra_principal_monthly) : 0;
+
+            const principal_reduction = principal_sched + extra;
+            const principal_next = Math.max(principal - principal_reduction, 0);
 
             totals.interest += interest;
             totals.tax += tax;
             totals.ins += ins;
-            totals.hoa += hoa;
+            totals.hoa += hoa_v;
             totals.mi += mi;
             totals.principal += principal_reduction;
-            totals.extra_principal += extra_principal;
-            totals.payments += total_payment;
+            totals.payments += p_and_i + mi + tax + ins + hoa_v + extra;
 
             schedule.push({
               index: t,
@@ -589,19 +580,19 @@
                 month: currentDate.getMonth() + 1,
               },
               opening_balance: principal,
-              p_and_i: actual_p_and_i,
+              p_and_i,
               interest,
-              principal_scheduled: Math.max(principal_reduction - extra_principal, 0),
-              extra_principal,
+              principal_scheduled: principal_sched,
+              extra_principal: extra,
               mi,
               tax,
               ins,
-              hoa,
-              total_payment,
-              closing_balance,
+              hoa: hoa_v,
+              total_payment: p_and_i + mi + tax + ins + hoa_v + extra,
+              closing_balance: principal_next,
             });
 
-            principal = closing_balance;
+            principal = principal_next;
             currentDate = advanceOneMonth(currentDate);
 
             if (principal <= ZERO_TOLERANCE) {
@@ -629,7 +620,6 @@
             total_mi: totals.mi,
             total_of_payments: totals.payments,
             total_principal: totals.principal,
-            total_extra_principal: totals.extra_principal,
             payments_made: schedule.length,
           };
         }
@@ -674,23 +664,6 @@
           const pmiPct = clampNonNegative(pmi_pct);
           const annualMiPct = clampNonNegative(annual_mi_pct);
 
-          let monthly_mi_fn;
-          switch (loanType) {
-            case "FHA":
-              monthly_mi_fn = (principal) => monthly_mi_fha(principal, annualMiPct);
-              break;
-            case "VA":
-              monthly_mi_fn = () => monthly_mi_va();
-              break;
-            case "USDA":
-              monthly_mi_fn = (principal) => monthly_mi_usda(principal, annualMiPct);
-              break;
-            case "conventional":
-            default:
-              monthly_mi_fn = (principal, hv) => monthly_mi_conventional(principal, hv ?? home_value, pmiPct);
-              break;
-          }
-
           const amortization = amortize_monthly(
             feeResult.principal_0,
             i_m,
@@ -700,15 +673,17 @@
             tax_monthly,
             ins_monthly,
             hoa,
-            (principal, hv) => monthly_mi_fn(principal, hv ?? home_value),
             home_value,
+            loanType,
+            pmiPct,
+            annualMiPct,
             p_and_i,
             extra_principal_monthly,
             extra_start_month_index
           );
 
           const totalsSummary = summarize_outputs(amortization.schedule, amortization.totals);
-          const monthly_mi_initial = monthly_mi_fn(feeResult.principal_0, home_value);
+          const monthly_mi_initial = monthly_mi(feeResult.principal_0, loanType, home_value, pmiPct, annualMiPct);
           const total_monthly_0 =
             p_and_i + tax_monthly + ins_monthly + hoa + monthly_mi_initial;
 
@@ -757,10 +732,7 @@
           apply_upfront_fee,
           normalize_property_tax,
           monthly_p_and_i,
-          monthly_mi_conventional,
-          monthly_mi_fha,
-          monthly_mi_usda,
-          monthly_mi_va,
+          monthly_mi,
           amortize_monthly,
           summarize_outputs,
           calculate_mortgage,
@@ -920,9 +892,11 @@
           outputs.total_interest.textContent = formatCurrency(totals.total_interest);
           outputs.payoff_date.textContent = payoffLabel;
 
+          const totalExtraPrincipal = schedule.reduce((sum, row) => sum + row.extra_principal, 0);
+
           outputs.interest_hint.textContent = `Totals include ${formatCurrency(
-            totals.total_principal
-          )} principal and ${formatCurrency(totals.total_extra_principal)} extra payments.`;
+            totals.total_principal - totalExtraPrincipal
+          )} scheduled principal and ${formatCurrency(totalExtraPrincipal)} extra payments.`;
 
           outputs.term_hint.textContent = `Original term ${normalized.term_years} yrs — paid off in ${yearsElapsed.toFixed(
             1
