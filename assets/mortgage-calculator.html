@@ -415,19 +415,24 @@
           const dpPctInput = clampNonNegative(down_payment_pct);
 
           let loan_amount_base;
-          if (dpValueInput > 0) {
-            loan_amount_base = hv - dpValueInput;
-          } else {
-            loan_amount_base = hv * (1 - dpPctInput);
-          }
+          let effectiveDpValue;
+          let effectiveDpPct;
 
-          const down_payment_value_normalized = dpValueInput > 0 ? dpValueInput : hv * dpPctInput;
-          const down_payment_pct_normalized = hv > 0 ? down_payment_value_normalized / hv : 0;
+          // If both down payment fields provided, prefer down_payment_value
+          if (dpValueInput > 0) {
+            effectiveDpValue = Math.min(dpValueInput, hv); // Don't allow down payment > home value
+            loan_amount_base = hv - effectiveDpValue;
+            effectiveDpPct = hv > 0 ? effectiveDpValue / hv : 0;
+          } else {
+            effectiveDpPct = Math.min(dpPctInput, 1.0); // Don't allow down payment % > 100%
+            effectiveDpValue = hv * effectiveDpPct;
+            loan_amount_base = hv * (1 - effectiveDpPct);
+          }
 
           return {
             loan_amount_base: clampNonNegative(loan_amount_base),
-            down_payment_value: down_payment_value_normalized,
-            down_payment_pct: down_payment_pct_normalized,
+            down_payment_value: effectiveDpValue,
+            down_payment_pct: effectiveDpPct,
           };
         }
 
@@ -611,8 +616,16 @@
           return { schedule, payoff_date, totals };
         }
 
-        function summarize_outputs(schedule, totals) {
+        function summarize_outputs(schedule, totals, p_and_i, tax_monthly, ins_monthly, hoa, principal_0, mi0) {
+          const total_monthly_0 = p_and_i + tax_monthly + ins_monthly + hoa + mi0;
+
+          const payoff_date = schedule.length
+            ? schedule[schedule.length - 1].date
+            : null;
+
           return {
+            total_monthly_0,
+            payoff_date,
             total_interest: totals.interest,
             total_tax: totals.tax,
             total_ins: totals.ins,
@@ -621,6 +634,7 @@
             total_of_payments: totals.payments,
             total_principal: totals.principal,
             payments_made: schedule.length,
+            schedule,
           };
         }
 
@@ -682,10 +696,18 @@
             extra_start_month_index
           );
 
-          const totalsSummary = summarize_outputs(amortization.schedule, amortization.totals);
           const monthly_mi_initial = monthly_mi(feeResult.principal_0, loanType, home_value, pmiPct, annualMiPct);
-          const total_monthly_0 =
-            p_and_i + tax_monthly + ins_monthly + hoa + monthly_mi_initial;
+
+          const totalsSummary = summarize_outputs(
+            amortization.schedule,
+            amortization.totals,
+            p_and_i,
+            tax_monthly,
+            ins_monthly,
+            hoa,
+            feeResult.principal_0,
+            monthly_mi_initial
+          );
 
           return {
             inputs: {
@@ -719,11 +741,20 @@
               hoa_monthly: hoa,
               p_and_i,
               monthly_mi_initial,
-              total_monthly_0,
+              total_monthly_0: totalsSummary.total_monthly_0,
             },
-            payoff_date: amortization.payoff_date,
-            totals: totalsSummary,
-            schedule: amortization.schedule,
+            payoff_date: totalsSummary.payoff_date,
+            totals: {
+              total_interest: totalsSummary.total_interest,
+              total_tax: totalsSummary.total_tax,
+              total_ins: totalsSummary.total_ins,
+              total_hoa: totalsSummary.total_hoa,
+              total_mi: totalsSummary.total_mi,
+              total_of_payments: totalsSummary.total_of_payments,
+              total_principal: totalsSummary.total_principal,
+              payments_made: totalsSummary.payments_made,
+            },
+            schedule: totalsSummary.schedule,
           };
         }
 
@@ -735,7 +766,6 @@
           monthly_mi,
           amortize_monthly,
           summarize_outputs,
-          calculate_mortgage,
         });
 
         globalThis.mortgageCalculator = mortgageCalculator;
