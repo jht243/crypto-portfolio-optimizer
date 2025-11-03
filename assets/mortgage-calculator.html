@@ -11,23 +11,23 @@
 
       body {
         margin: 0;
-        padding: 28px;
+        padding: 16px;
         display: flex;
         justify-content: center;
-        background: radial-gradient(circle at top, #1f2937, #090d16 70%);
+        background: radial-gradient(circle at top, #0f172a, #050509 70%);
         color: #f9fafb;
       }
 
       .app {
-        width: min(900px, 100%);
-        background: rgba(13, 20, 34, 0.92);
-        border: 1px solid rgba(148, 163, 184, 0.2);
-        border-radius: 18px;
-        padding: 28px;
-        box-shadow: 0 24px 70px rgba(8, 12, 23, 0.6);
-        backdrop-filter: blur(14px);
+        width: min(720px, 100%);
+        background: rgba(15, 21, 34, 0.96);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 14px;
+        padding: 18px;
+        box-shadow: 0 14px 38px rgba(5, 9, 18, 0.5);
+        backdrop-filter: blur(10px);
         display: grid;
-        gap: 24px;
+        gap: 16px;
       }
 
       header h1 {
@@ -44,24 +44,24 @@
       }
 
       .section-title {
-        font-size: 13px;
+        font-size: 11px;
         font-weight: 600;
-        letter-spacing: 0.16em;
-        color: rgba(226, 232, 240, 0.72);
+        letter-spacing: 0.13em;
+        color: rgba(226, 232, 240, 0.64);
         text-transform: uppercase;
-        margin-bottom: 16px;
+        margin-bottom: 10px;
       }
 
       .section-summary {
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 600;
-        letter-spacing: 0.16em;
-        color: rgba(226, 232, 240, 0.72);
+        letter-spacing: 0.14em;
+        color: rgba(226, 232, 240, 0.7);
         text-transform: uppercase;
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 12px 20px;
+        gap: 10px;
+        padding: 10px 16px;
       }
 
       .section-summary::after {
@@ -85,17 +85,17 @@
       }
 
       .collapsible-content {
-        padding: 0 20px 20px;
+        padding: 0 14px 14px;
         margin-top: 0;
       }
 
       .section-block {
-        border-radius: 16px;
-        border: 1px solid rgba(148, 163, 184, 0.24);
-        background: rgba(10, 16, 28, 0.58);
-        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        background: rgba(9, 14, 24, 0.58);
+        padding: 14px;
         display: grid;
-        gap: 16px;
+        gap: 10px;
       }
 
       details.section-block {
@@ -112,8 +112,8 @@
 
       .grid {
         display: grid;
-        gap: 20px;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
       }
 
       .is-hidden {
@@ -123,11 +123,24 @@
       label {
         display: flex;
         flex-direction: column;
-        gap: 6px;
-        font-size: 12px;
+        gap: 4px;
+        font-size: 10px;
         color: rgba(226, 232, 240, 0.68);
         text-transform: uppercase;
         letter-spacing: 0.08em;
+      }
+
+      label.has-error input,
+      label.has-error select {
+        border-bottom-color: #f87171;
+      }
+
+      label .field-message {
+        font-size: 10px;
+        color: #fca5a5;
+        text-transform: none;
+        letter-spacing: 0;
+        font-weight: 400;
       }
 
       .percent-field {
@@ -152,12 +165,12 @@
       input[type="text"],
       select {
         border: none;
-        border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.32);
         border-radius: 0;
         background: transparent;
         color: #f9fafb;
-        font-size: 16px;
-        padding: 8px 4px;
+        font-size: 15px;
+        padding: 6px 4px;
         transition: border-color 0.2s ease, color 0.2s ease;
       }
 
@@ -180,18 +193,22 @@
       .checkbox-row {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        border-radius: 10px;
-        border: 1px solid rgba(148, 163, 184, 0.24);
-        background: rgba(11, 18, 32, 0.35);
+        gap: 6px;
+        padding: 6px 8px;
+        border-radius: 8px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: rgba(11, 18, 32, 0.28);
       }
 
-      .cards {
+      .result-stack {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 16px;
-        row-gap: 20px;
+        gap: 12px;
+      }
+
+      .quick-metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
       }
 
       .result-carousel {
@@ -253,21 +270,21 @@
 
       .carousel-slide {
         min-width: 100%;
-        padding: 6px 0;
+        padding: 4px 0;
         display: flex;
         justify-content: center;
       }
 
       .slide-content {
         width: 100%;
-        max-width: 980px;
+        max-width: 760px;
         margin: 0 auto;
         display: grid;
-        gap: 24px;
+        gap: 18px;
       }
 
       .slide-content.tight {
-        gap: 20px;
+        gap: 16px;
       }
 
       .slide-header h2 {
@@ -285,9 +302,9 @@
 
       .totals-list {
         display: grid;
-        gap: 10px;
-        font-size: 14px;
-        color: rgba(226, 232, 240, 0.75);
+        gap: 8px;
+        font-size: 13px;
+        color: rgba(226, 232, 240, 0.76);
       }
 
       .totals-list strong {
@@ -295,16 +312,16 @@
       }
 
       .result-card {
-        border-radius: 14px;
-        padding: 18px;
-        background: rgba(11, 18, 32, 0.65);
+        border-radius: 11px;
+        padding: 14px;
+        background: rgba(10, 16, 28, 0.6);
         border: 1px solid rgba(148, 163, 184, 0.18);
         display: grid;
-        gap: 8px;
+        gap: 6px;
       }
 
       .result-card .label {
-        font-size: 11px;
+        font-size: 10px;
         letter-spacing: 0.1em;
         text-transform: uppercase;
         color: rgba(226, 232, 240, 0.5);
@@ -321,11 +338,10 @@
       }
 
       .result-card.primary {
-        grid-column: 1 / -1;
-        padding: 26px;
-        background: linear-gradient(135deg, rgba(37, 99, 235, 0.28), rgba(17, 24, 39, 0.85));
-        border: 1px solid rgba(37, 99, 235, 0.35);
-        box-shadow: 0 18px 48px rgba(30, 64, 175, 0.3);
+        padding: 18px;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(15, 22, 38, 0.9));
+        border: 1px solid rgba(59, 130, 246, 0.35);
+        box-shadow: 0 18px 38px rgba(30, 64, 175, 0.28);
       }
 
       .result-card.primary .label {
@@ -335,15 +351,15 @@
       }
 
       .result-card.primary .value {
-        font-size: 44px;
-        font-weight: 700;
-        line-height: 1.1;
+        font-size: 42px;
+        font-weight: 720;
+        line-height: 1.08;
       }
 
       .result-card.secondary {
         background: rgba(11, 18, 32, 0.5);
-        border-color: rgba(148, 163, 184, 0.15);
-        padding: 16px;
+        border-color: rgba(148, 163, 184, 0.12);
+        padding: 12px;
       }
 
       .result-card.secondary .value,
@@ -358,10 +374,11 @@
 
       .actions {
         display: flex;
-        justify-content: flex-end;
-        font-size: 12px;
-        color: rgba(226, 232, 240, 0.5);
-        gap: 12px;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 10px;
+        color: rgba(226, 232, 240, 0.56);
+        gap: 8px;
       }
 
       .actions button {
@@ -377,20 +394,6 @@
 
       #calculateBtn {
         display: none;
-      }
-
-      .summary {
-        border-radius: 14px;
-        padding: 18px;
-        border: 1px solid rgba(148, 163, 184, 0.16);
-        background: rgba(11, 18, 32, 0.55);
-        color: rgba(226, 232, 240, 0.82);
-        font-size: 14px;
-        line-height: 1.7;
-      }
-
-      .summary strong {
-        color: #f9fafb;
       }
 
       details summary {
@@ -488,18 +491,22 @@
                     <label>
                       Home value ($)
                       <input type="number" id="home_value" min="0" step="1000" />
+                      <span class="field-message" data-field-error="home_value"></span>
                     </label>
                     <label>
                       Down payment ($)
                       <input type="number" id="down_payment_value" min="0" step="1000" />
+                      <span class="field-message" data-field-error="down_payment_value"></span>
                     </label>
                     <label class="percent-field">
                       Rate (APR %)
                       <input type="number" id="rate_apr" min="0" step="0.01" />
+                      <span class="field-message" data-field-error="rate_apr"></span>
                     </label>
                     <label>
                       Term (years)
                       <input type="number" id="term_years" min="1" step="1" />
+                      <span class="field-message" data-field-error="term_years"></span>
                     </label>
                   </div>
                 </section>
@@ -579,10 +586,12 @@
                       <label>
                         First payment month
                         <input type="number" id="start_month" min="1" max="12" step="1" />
+                        <span class="field-message" data-field-error="start_month"></span>
                       </label>
                       <label>
                         First payment year
                         <input type="number" id="start_year" min="2024" step="1" />
+                        <span class="field-message" data-field-error="start_year"></span>
                       </label>
                       <label>
                         Extra payment ($/mo)
@@ -596,31 +605,33 @@
                   </div>
                 </details>
 
-                <div class="actions">
-                  <span>Updates automatically as you edit.</span>
-                  <button class="secondary" id="resetBtn" type="button">Reset defaults</button>
-                </div>
-
-                <div class="cards">
+                <div class="result-stack">
                   <div class="result-card primary" id="monthlyPaymentCard">
                     <span class="label">Monthly payment (month 0)</span>
                     <span class="value" id="total_monthly_0">$0</span>
                     <span class="hint">Includes P&I, MI, taxes, insurance, HOA (excludes extra principal).</span>
                   </div>
-                  <div class="result-card secondary">
-                    <span class="label">Scheduled principal & interest</span>
-                    <span class="value" id="p_and_i">$0</span>
-                    <span class="hint">Level payment before extra principal or add-ons.</span>
+                  <div class="quick-metrics">
+                    <div class="result-card secondary">
+                      <span class="label">Scheduled principal & interest</span>
+                      <span class="value" id="p_and_i">$0</span>
+                      <span class="hint">Level payment before extra principal or add-ons.</span>
+                    </div>
+                    <div class="result-card secondary">
+                      <span class="label">Total interest over loan</span>
+                      <span class="value" id="total_interest">$0</span>
+                      <span class="hint" id="interest_hint"></span>
+                    </div>
+                    <div class="result-card secondary">
+                      <span class="label">Estimated payoff date</span>
+                      <span class="value" id="payoff_date">—</span>
+                      <span class="hint" id="term_hint"></span>
+                    </div>
                   </div>
-                  <div class="result-card secondary">
-                    <span class="label">Total interest over loan</span>
-                    <span class="value" id="total_interest">$0</span>
-                    <span class="hint" id="interest_hint"></span>
-                  </div>
-                  <div class="result-card secondary">
-                    <span class="label">Estimated payoff date</span>
-                    <span class="value" id="payoff_date">—</span>
-                    <span class="hint" id="term_hint"></span>
+
+                  <div class="actions">
+                    <span>Updates automatically as you edit.</span>
+                    <button class="secondary" id="resetBtn" type="button">Reset defaults</button>
                   </div>
                 </div>
               </div>
@@ -1166,6 +1177,86 @@
           slides: Array.from(document.querySelectorAll(".carousel-slide")),
           index: 0,
         };
+        const fieldMessages = Array.from(document.querySelectorAll(".field-message"));
+
+        const clearFieldErrors = () => {
+          fieldMessages.forEach((span) => {
+            span.textContent = "";
+            const label = span.closest("label");
+            if (label) label.classList.remove("has-error");
+          });
+        };
+
+        const setFieldError = (fieldId, message) => {
+          const span = document.querySelector(`[data-field-error="${fieldId}"]`);
+          if (!span) return;
+          span.textContent = message;
+          const label = span.closest("label");
+          if (label) label.classList.add("has-error");
+        };
+
+        const emitTelemetry = (event, detail = {}) => {
+          try {
+            if (window?.openai?.trackEvent) {
+              window.openai.trackEvent(event, detail);
+              return;
+            }
+          } catch (err) {
+            console.debug("trackEvent failed", err);
+          }
+          console.debug(`[mortgage-telemetry] ${event}`, detail);
+        };
+
+        const validateInputs = () => {
+          clearFieldErrors();
+          const issues = [];
+
+          const homeValue = toNumber(inputs.home_value.value);
+          if (homeValue <= 0) {
+            setFieldError("home_value", "Enter a home value above 0");
+            issues.push("home_value");
+          }
+
+          const downPaymentValue = toNumber(inputs.down_payment_value.value);
+          if (downPaymentValue < 0) {
+            setFieldError("down_payment_value", "Cannot be negative");
+            issues.push("down_payment_value");
+          } else if (homeValue > 0 && downPaymentValue > homeValue) {
+            setFieldError("down_payment_value", "Cannot exceed home value");
+            issues.push("down_payment_value");
+          }
+
+          const rateApr = toNumber(inputs.rate_apr.value);
+          if (rateApr < 0) {
+            setFieldError("rate_apr", "Rate cannot be negative");
+            issues.push("rate_apr");
+          }
+
+          const termYears = toNumber(inputs.term_years.value);
+          if (termYears < 1) {
+            setFieldError("term_years", "Must be at least 1 year");
+            issues.push("term_years");
+          }
+
+          const startMonth = toNumber(inputs.start_month.value);
+          if (startMonth && (startMonth < 1 || startMonth > 12)) {
+            setFieldError("start_month", "Use a month between 1 and 12");
+            issues.push("start_month");
+          }
+
+          const startYear = toNumber(inputs.start_year.value);
+          if (startYear && startYear < 1900) {
+            setFieldError("start_year", "Year looks too early");
+            issues.push("start_year");
+          }
+
+          if (issues.length) {
+            emitTelemetry("validation_error", { fields: issues });
+            return false;
+          }
+
+          return true;
+        };
 
         const setDefaults = (preset = baseDefaults) => {
           Object.entries(preset).forEach(([key, value]) => {
@@ -1178,6 +1269,7 @@
           });
           normalizePercentInputs();
           updateMiVisibility();
+          clearFieldErrors();
         };
 
         const mergeProgramDefaults = () => {
@@ -1295,33 +1387,70 @@
         };
 
         const calculateAndRender = () => {
+          if (!validateInputs()) {
+            return;
+          }
           const params = readParams();
           const calc = mortgageCalculator.calculate_mortgage(params);
           renderSummary(calc);
         };
 
+        const CAROUSEL_STORAGE_KEY = "mortgage-carousel-index";
+        const persistCarouselIndex = () => {
+          try {
+            sessionStorage.setItem(CAROUSEL_STORAGE_KEY, String(carousel.index));
+          } catch (err) {
+            console.debug("Unable to persist carousel index", err);
+          }
+        };
+
+        const loadCarouselIndex = () => {
+          try {
+            const stored = sessionStorage.getItem(CAROUSEL_STORAGE_KEY);
+            if (stored !== null) {
+              const parsed = Number(stored);
+              if (!Number.isNaN(parsed)) {
+                carousel.index = parsed;
+              }
+            }
+          } catch (err) {
+            console.debug("Unable to load carousel index", err);
+          }
+        };
+
+        let lastCarouselIndex = carousel.index;
+        let isInitialCarouselSync = true;
         const updateCarousel = () => {
           if (!carousel.track) return;
           const clamped = Math.max(0, Math.min(carousel.index, carousel.slides.length - 1));
+          const changed = clamped !== lastCarouselIndex;
           carousel.index = clamped;
           const offsetPercent = -(clamped * 100);
           carousel.track.style.transform = `translateX(${offsetPercent}%)`;
           if (carousel.prev) carousel.prev.disabled = clamped === 0;
           if (carousel.next) carousel.next.disabled = clamped === carousel.slides.length - 1;
+          persistCarouselIndex();
+          if (!isInitialCarouselSync && changed) {
+            const cardId = carousel.slides[clamped]?.dataset.card || "unknown";
+            emitTelemetry("carousel_navigated", { index: clamped, card: cardId });
+          }
+          lastCarouselIndex = clamped;
+          if (isInitialCarouselSync) {
+            isInitialCarouselSync = false;
+          }
+        };
+
+        const moveCarousel = (delta) => {
+          carousel.index += delta;
+          updateCarousel();
         };
 
         if (carousel.prev) {
-          carousel.prev.addEventListener("click", () => {
-            carousel.index -= 1;
-            updateCarousel();
-          });
+          carousel.prev.addEventListener("click", () => moveCarousel(-1));
         }
 
         if (carousel.next) {
-          carousel.next.addEventListener("click", () => {
-            carousel.index += 1;
-            updateCarousel();
-          });
+          carousel.next.addEventListener("click", () => moveCarousel(1));
         }
 
         const resetButton = $("resetBtn");
@@ -1343,8 +1472,50 @@
           calculateAndRender();
         });
 
+        loadCarouselIndex();
         updateMiVisibility();
         updateCarousel();
+
+        const carouselWindowEl = document.querySelector(".carousel-window");
+        let pointerStartX = null;
+        const SWIPE_THRESHOLD = 30;
+
+        if (carouselWindowEl) {
+          carouselWindowEl.addEventListener("pointerdown", (event) => {
+            if (event.pointerType === "touch" || event.pointerType === "pen") {
+              pointerStartX = event.clientX;
+            }
+          });
+
+          const handlePointerEnd = (event) => {
+            if (pointerStartX === null) return;
+            const deltaX = event.clientX - pointerStartX;
+            if (Math.abs(deltaX) > SWIPE_THRESHOLD) {
+              moveCarousel(deltaX < 0 ? 1 : -1);
+            }
+            pointerStartX = null;
+          };
+
+          carouselWindowEl.addEventListener("pointerup", handlePointerEnd);
+          carouselWindowEl.addEventListener("pointercancel", () => {
+            pointerStartX = null;
+          });
+        }
+
+        document.addEventListener("keydown", (event) => {
+          const target = event.target;
+          if (target && ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName)) {
+            return;
+          }
+
+          if (event.key === "ArrowLeft") {
+            event.preventDefault();
+            moveCarousel(-1);
+          } else if (event.key === "ArrowRight") {
+            event.preventDefault();
+            moveCarousel(1);
+          }
+        });
 
         Object.values(inputs).forEach((el) => {
           const handler = () => {
