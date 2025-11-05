@@ -538,11 +538,6 @@
         gap: 10px 18px;
         font-size: 13px;
         color: rgba(148, 163, 184, 0.9);
-        background: linear-gradient(135deg, rgba(25, 28, 48, 0.7), rgba(20, 23, 42, 0.75));
-        border: 1px solid rgba(71, 85, 105, 0.25);
-        border-radius: 12px;
-        padding: 14px;
-        box-shadow: 0 4px 12px rgba(10, 13, 28, 0.35);
       }
 
       .totals-item {
@@ -718,13 +713,8 @@
         color: rgba(226, 232, 240, 0.6);
       }
 
-      /* Make amortization schedule container match secondary cards */
+      /* Amortization schedule container: rely on section-block for chrome */
       #schedulePreview {
-        background: linear-gradient(135deg, rgba(25, 28, 48, 0.7), rgba(20, 23, 42, 0.75));
-        border: 1px solid rgba(71, 85, 105, 0.25);
-        border-radius: 12px;
-        padding: 14px;
-        box-shadow: 0 4px 12px rgba(10, 13, 28, 0.35);
         overflow: auto;
       }
 
@@ -1043,11 +1033,15 @@
                   <h2>Amortization & totals</h2>
                   <p>Review lifetime costs and the first year of payments at a glance.</p>
                 </header>
-                <div class="section-title">Lifetime totals</div>
-                <div class="totals-list" id="totalsBreakdown"></div>
-                <div class="section-title" style="margin-top: 24px;">Schedule preview</div>
-                <div id="schedulePreview"></div>
-                <div class="schedule-note" id="scheduleNote"></div>
+                <section class="section-block">
+                  <div class="section-title">Lifetime totals</div>
+                  <div class="totals-list" id="totalsBreakdown"></div>
+                </section>
+                <section class="section-block">
+                  <div class="section-title">Schedule preview</div>
+                  <div id="schedulePreview"></div>
+                  <div class="schedule-note" id="scheduleNote"></div>
+                </section>
               </div>
             </div>
           </div>
