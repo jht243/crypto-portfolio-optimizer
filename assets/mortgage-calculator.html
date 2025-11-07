@@ -608,6 +608,39 @@
       }
       .rate-cta svg { width: 14px; height: 14px; display: block; color: currentColor; }
 
+      /* Email modal (overlay) */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(2, 6, 23, 0.66);
+        z-index: 9999;
+      }
+      .modal-dialog {
+        width: min(440px, 90vw);
+        border-radius: 12px;
+        border: 1px solid rgba(71, 85, 105, 0.35);
+        background: linear-gradient(135deg, rgba(30, 33, 56, 0.9), rgba(25, 28, 48, 0.95));
+        box-shadow: 0 10px 40px rgba(2, 6, 23, 0.6);
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+      }
+      .modal-dialog h3 {
+        margin: 0;
+        font-size: 16px;
+        letter-spacing: -0.01em;
+        color: #e2e8f0;
+      }
+      .modal-dialog p { margin: 0; color: rgba(148,163,184,0.8); font-size: 13px; }
+      .modal-dialog input[type="email"] { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(100,116,139,0.35); background: rgba(15,23,42,0.5); color: #e2e8f0; font-size: 14px; }
+      .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+      .modal-actions button { background: rgba(37,40,65,0.8); border: 1px solid rgba(100,116,139,0.35); color: rgba(226,232,240,0.92); padding: 8px 12px; font: inherit; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; border-radius: 8px; cursor: pointer; }
+      .modal-actions button.primary { color: #0ea5e9; border-color: rgba(14,165,233,0.5); background: rgba(14,165,233,0.12); }
+      .modal-status { min-height: 18px; font-size: 12px; color: rgba(148,163,184,0.9); }
+
       .totals-list {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2232,17 +2265,53 @@
         };
 
         if (notifyBtn) {
-          notifyBtn.addEventListener("click", async () => {
+          let overlay, emailInput, statusEl, cancelBtn, submitBtn;
+
+          const ensureNotifyModal = () => {
+            if (overlay) return;
+            overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.innerHTML = `
+              <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="notifyTitle">
+                <h3 id="notifyTitle">Notify me when rates drop</h3>
+                <p>We'll email you when average rates drop.</p>
+                <input id="notifyEmail" type="email" placeholder="you@example.com" autocomplete="email" />
+                <div id="notifyStatus" class="modal-status"></div>
+                <div class="modal-actions">
+                  <button type="button" id="notifyCancel">Cancel</button>
+                  <button type="button" id="notifySubmit" class="primary">Notify me</button>
+                </div>
+              </div>`;
+            document.body.appendChild(overlay);
+            emailInput = overlay.querySelector('#notifyEmail');
+            statusEl = overlay.querySelector('#notifyStatus');
+            cancelBtn = overlay.querySelector('#notifyCancel');
+            submitBtn = overlay.querySelector('#notifySubmit');
+
+            const onCancel = () => { overlay.style.display = 'none'; };
+            cancelBtn.addEventListener('click', onCancel);
+            overlay.addEventListener('click', (e) => { if (e.target === overlay) onCancel(); });
+            emailInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+            submitBtn.addEventListener('click', () => submit());
+          };
+
+          const openModal = () => {
+            ensureNotifyModal();
+            statusEl.textContent = '';
+            overlay.style.display = 'flex';
+            setTimeout(() => emailInput?.focus(), 0);
+          };
+
+          const submit = async () => {
+            const email = (emailInput?.value || '').trim();
+            if (!email || !email.includes('@')) {
+              statusEl.textContent = 'Please enter a valid email address.';
+              return;
+            }
+            statusEl.textContent = 'Subscribing…';
+
             try {
-              const email = window.prompt("Enter your email to be notified when rates drop:");
-              if (!email) return;
-              if (!email.includes("@")) {
-                window.alert("Please enter a valid email address.");
-                return;
-              }
-
               emitTelemetry("notify_me_subscribe", { type: "rates", email });
-
               const resp = await fetch("/api/subscribe", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -2254,19 +2323,22 @@
                   turnstileToken: "auto-verified-fallback",
                 }),
               });
-
               const data = await resp.json().catch(() => ({}));
               if (resp.ok && (data?.success || data?.id)) {
                 const code = Math.random().toString(36).slice(2, 8).toUpperCase();
-                window.alert(`${data.message || "You're subscribed!"}\nConfirmation: ${code}`);
+                statusEl.textContent = data.message || "You're subscribed!";
+                overlay.style.display = 'none';
+                window.setTimeout(() => window.alert(`${data.message || "You're subscribed!"}\nConfirmation: ${code}`), 50);
               } else {
-                window.alert(`Subscription failed: ${data?.error || resp.statusText}`);
+                statusEl.textContent = `Subscription failed: ${data?.error || resp.statusText}`;
               }
             } catch (err) {
-              console.error("Notify subscription error", err);
-              window.alert("Subscription failed. Please try again.");
+              console.error('Notify subscription error', err);
+              statusEl.textContent = 'Subscription failed. Please try again.';
             }
-          });
+          };
+
+          notifyBtn.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
 
           requestAnimationFrame(centerNotifyUnderRate);
           window.addEventListener('resize', centerNotifyUnderRate);
