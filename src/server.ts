@@ -215,9 +215,13 @@ function readWidgetHtml(componentName: string): string {
   return htmlContents;
 }
 
-function widgetMeta(widget: MortgageWidget) {
+function widgetMeta(widget: MortgageWidget, bustCache: boolean = false) {
+  const templateUri = bustCache 
+    ? `ui://widget/mortgage-calculator.html?v=${Date.now()}`
+    : widget.templateUri;
+  
   return {
-    "openai/outputTemplate": widget.templateUri,
+    "openai/outputTemplate": templateUri,
     "openai/widgetDescription": "Displays a simple Hello World message.",
     "openai/widgetPrefersBorder": true,
     "openai/toolInvocation/invoking": widget.invoking,
@@ -419,7 +423,8 @@ function createMortgageCalculatorServer(): Server {
           userAgent,
         });
 
-        const widgetMetadata = widgetMeta(widget);
+        // Generate fresh URI with timestamp on every tool call to bust ChatGPT's cache
+        const widgetMetadata = widgetMeta(widget, true);
         console.log(`[MCP] Tool called: ${request.params.name}, returning templateUri: ${(widgetMetadata as any)["openai/outputTemplate"]}`);
 
         return {
