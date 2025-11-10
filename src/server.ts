@@ -232,7 +232,7 @@ const widgets: MortgageWidget[] = [
   {
     id: "mortgage-calculator",
     title: "Mortgage Calculator",
-    templateUri: "ui://widget/mortgage-calculator.html",
+    templateUri: `ui://widget/mortgage-calculator.html?v=${Date.now()}`,
     invoking: "Opening your mortgage calculator widget...",
     invoked: "Here is the mortgage calculator widget",
     html: readWidgetHtml("mortgage-calculator"),
