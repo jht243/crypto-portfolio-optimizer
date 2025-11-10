@@ -2362,22 +2362,65 @@
           window.addEventListener('resize', centerNotifyUnderRate);
         }
 
-        // Load daily rate (FRED + 0.5%) and update badge
-        const refreshRateBadge = async () => {
-          try {
-            const resp = await fetch('/api/rate');
-            if (!resp.ok) return;
-            const data = await resp.json();
-            const val = Number(data?.ratePercent);
-            if (!Number.isFinite(val)) return;
-            const numEl = document.querySelector('.rate-badge .rate-num');
-            if (numEl) {
-              numEl.textContent = `${val}%`;
-              requestAnimationFrame(() => {
-                if (typeof centerNotifyUnderRate === 'function') centerNotifyUnderRate();
-              });
+        // Load daily rate (FRED + 0.5%) and robustly update badge with retries and guard
+        const RATE_ENDPOINTS = [
+          '/api/rate',
+          'https://mortgage-calculator-open-ai.onrender.com/api/rate',
+          'http://localhost:8000/api/rate',
+        ];
+
+        const applyRateBadge = (val) => {
+          const numEl = document.querySelector('.rate-badge .rate-num');
+          if (!numEl) return false;
+          const text = `${val}%`;
+          if (numEl.textContent !== text) numEl.textContent = text;
+          requestAnimationFrame(() => {
+            if (typeof centerNotifyUnderRate === 'function') centerNotifyUnderRate();
+          });
+          return true;
+        };
+
+        const fetchRateOnce = async () => {
+          for (const url of RATE_ENDPOINTS) {
+            try {
+              const resp = await fetch(url, { cache: 'no-store' });
+              if (!resp.ok) continue;
+              const data = await resp.json();
+              const val = Number(data?.ratePercent);
+              if (Number.isFinite(val)) return val;
+            } catch (_) {
+              // try next endpoint
             }
-          } catch (_) {}
+          }
+          return null;
+        };
+
+        const guardRateBadge = (expectedText, ms = 10000) => {
+          const numEl = document.querySelector('.rate-badge .rate-num');
+          if (!numEl || typeof MutationObserver === 'undefined') return;
+          const end = Date.now() + ms;
+          const obs = new MutationObserver(() => {
+            if (Date.now() > end) { obs.disconnect(); return; }
+            if (numEl.textContent !== expectedText) {
+              numEl.textContent = expectedText;
+            }
+          });
+          obs.observe(numEl, { childList: true, characterData: true, subtree: true });
+          // Stop guarding after ms
+          setTimeout(() => obs.disconnect(), ms + 50);
+        };
+
+        const refreshRateBadge = async (maxTries = 6) => {
+          for (let attempt = 0; attempt < maxTries; attempt++) {
+            const val = await fetchRateOnce();
+            if (val != null) {
+              const applied = applyRateBadge(val);
+              if (applied) guardRateBadge(`${val}%`, 12000);
+              return;
+            }
+            const delay = Math.min(8000, 500 * Math.pow(2, attempt));
+            await new Promise((r) => setTimeout(r, delay));
+          }
         };
 
         setDefaults(baseDefaults);
