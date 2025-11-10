@@ -179,9 +179,11 @@ function readWidgetHtml(componentName: string): string {
 
   const directPath = path.join(ASSETS_DIR, `${componentName}.html`);
   let htmlContents: string | null = null;
+  let loadedFrom = "";
 
   if (fs.existsSync(directPath)) {
     htmlContents = fs.readFileSync(directPath, "utf8");
+    loadedFrom = directPath;
   } else {
     const candidates = fs
       .readdirSync(ASSETS_DIR)
@@ -191,7 +193,9 @@ function readWidgetHtml(componentName: string): string {
       .sort();
     const fallback = candidates[candidates.length - 1];
     if (fallback) {
-      htmlContents = fs.readFileSync(path.join(ASSETS_DIR, fallback), "utf8");
+      const fallbackPath = path.join(ASSETS_DIR, fallback);
+      htmlContents = fs.readFileSync(fallbackPath, "utf8");
+      loadedFrom = fallbackPath;
     }
   }
 
@@ -200,6 +204,13 @@ function readWidgetHtml(componentName: string): string {
       `Widget HTML for "${componentName}" not found in ${ASSETS_DIR}. Run "pnpm run build" to generate the assets.`
     );
   }
+
+  // Log what was loaded and check for "5%" in the badge
+  const has5Percent = htmlContents.includes('<span class="rate-num">5%</span>');
+  const isBlank = htmlContents.includes('<span class="rate-num"></span>');
+  console.log(`[Widget Load] File: ${loadedFrom}`);
+  console.log(`[Widget Load] Has "5%": ${has5Percent}, Is Blank: ${isBlank}`);
+  console.log(`[Widget Load] HTML length: ${htmlContents.length} bytes`);
 
   return htmlContents;
 }
