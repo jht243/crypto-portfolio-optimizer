@@ -3,7 +3,6 @@ import {
   type IncomingMessage,
   type ServerResponse,
 } from "node:http";
-import PDFDocument from "pdfkit";
 import fs from "node:fs";
 import path from "node:path";
 import { URL, fileURLToPath } from "node:url";
@@ -48,158 +47,6 @@ const LOGS_DIR = path.resolve(__dirname, "..", "logs");
 
 if (!fs.existsSync(LOGS_DIR)) {
   fs.mkdirSync(LOGS_DIR, { recursive: true });
-}
-
-async function handlePing(req: IncomingMessage, res: ServerResponse) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Headers", "content-type");
-  res.setHeader("Content-Type", "application/json");
-  if (req.method === "OPTIONS") {
-    res.writeHead(204).end();
-    return;
-  }
-  if (req.method !== "GET") {
-    res.writeHead(405).end(JSON.stringify({ error: "Method not allowed" }));
-    return;
-  }
-  res.writeHead(200).end(JSON.stringify({ ok: true, ts: Date.now() }));
-}
-
-async function handleExportPdf(req: IncomingMessage, res: ServerResponse) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Headers", "content-type");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-
-  if (req.method === "OPTIONS") {
-    res.writeHead(204).end();
-    return;
-  }
-
-  if (req.method === "HEAD") {
-    // Some environments probe with HEAD; respond OK with no body
-    res.writeHead(204).end();
-    return;
-  }
-
-  if (req.method !== "POST" && req.method !== "GET") {
-    try { console.warn(`[ExportPDF] 405 Method not allowed: ${req.method}`); } catch (_) {}
-    res.writeHead(405, { "Content-Type": "application/json" }).end(JSON.stringify({ error: "Method not allowed" }));
-    return;
-  }
-
-  try {
-    let payload: any = {};
-    if (req.method === "POST") {
-      let body = "";
-      for await (const chunk of req) body += chunk;
-      payload = JSON.parse(body || "{}");
-    } else if (req.method === "GET") {
-      try {
-        const url = new URL(req.url || "", `http://${req.headers.host || "localhost"}`);
-        const q = url.searchParams.get("q");
-        if (q) {
-          const json = Buffer.from(q, "base64").toString("utf8");
-          payload = JSON.parse(json);
-        } else {
-          // Accept flat query params as a minimal fallback
-          const params: Record<string, any> = {};
-          url.searchParams.forEach((v, k) => { if (k !== "q") params[k] = v; });
-          payload = { params };
-        }
-      } catch (e) {
-        console.warn("[ExportPDF] GET parse error", e);
-        payload = {};
-      }
-    }
-    const ua = req.headers["user-agent"] || "";
-    const params = payload?.params || {};
-    const monthlyPayment = payload?.monthlyPayment;
-    const chartPngDataUrl = payload?.chartPngDataUrl as string | undefined;
-
-    // Pre-flight debug logging
-    try {
-      const chartLen = typeof chartPngDataUrl === "string" ? chartPngDataUrl.length : 0;
-      console.log("[ExportPDF] request received", {
-        hasChart: Boolean(chartPngDataUrl && chartPngDataUrl.startsWith("data:image")),
-        chartLen,
-        monthlyPayment,
-        paramKeys: Object.keys(params || {}),
-        ua,
-      });
-      logAnalytics("export_pdf_request", {
-        hasChart: Boolean(chartPngDataUrl && chartPngDataUrl.startsWith("data:image")),
-        chartLen,
-        monthlyPayment,
-      });
-    } catch (_) {}
-
-    // Prepare PDF
-    const doc = new PDFDocument({ size: "LETTER", margin: 36 });
-    doc.on("error", (err) => {
-      console.error("[ExportPDF] PDF stream error", err);
-    });
-    doc.on("end", () => {
-      console.log("[ExportPDF] PDF stream finished");
-      try { logAnalytics("export_pdf_stream_end", {}); } catch (_) {}
-    });
-    res.writeHead(200, {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": "attachment; filename=Mortgage_Summary.pdf",
-    });
-    doc.pipe(res);
-
-    // Header
-    doc.fillColor("#0ea5e9").fontSize(18).text("Mortgage Calculator Summary", { align: "left" });
-    doc.moveDown(0.2);
-    doc.fillColor("#6b7280").fontSize(10).text(new Date().toLocaleString());
-    doc.moveDown(0.6);
-
-    // Inputs section
-    doc.fillColor("#e5e7eb").fontSize(12).text("Loan Inputs", { underline: true });
-    doc.moveDown(0.4);
-    const lines: Array<[string, any]> = [
-      ["Loan program", params.loan_type ?? "—"],
-      ["Home value ($)", params.home_value ?? "—"],
-      ["Down payment ($)", params.down_payment_value ?? "—"],
-      ["Rate (APR %)", params.rate_apr ?? "—"],
-      ["Term (years)", params.term_years ?? "—"],
-      ["ZIP code", params.zip_code ?? "—"],
-      ["Property tax (%)", params.property_tax_input ?? "—"],
-      ["Homeowners insurance ($/yr)", params.homeowners_insurance_yearly ?? "—"],
-      ["HOA ($/mo)", params.hoa_monthly ?? "—"],
-    ];
-    lines.forEach(([k, v]) => {
-      doc.fillColor("#cbd5e1").fontSize(11).text(`${k}: `, { continued: true });
-      doc.fillColor("#ffffff").text(String(v));
-    });
-
-    if (monthlyPayment != null) {
-      doc.moveDown(0.4);
-      doc.fillColor("#e5e7eb").fontSize(12).text("Monthly Payment", { underline: true });
-      doc.fillColor("#ffffff").fontSize(16).text(`$${monthlyPayment.toLocaleString?.() ?? monthlyPayment}`);
-    }
-
-    // Chart image
-    if (chartPngDataUrl && chartPngDataUrl.startsWith("data:image")) {
-      try {
-        const base64 = chartPngDataUrl.split(",")[1] || "";
-        const buf = Buffer.from(base64, "base64");
-        doc.moveDown(0.6);
-        doc.fillColor("#e5e7eb").fontSize(12).text("Monthly Payment Breakdown");
-        doc.moveDown(0.2);
-        const maxWidth = 540; // page width minus margins
-        doc.image(buf, { fit: [maxWidth, 300] });
-      } catch (err) {
-        console.error("Failed to embed chart image", err);
-      }
-    }
-
-    console.log("[ExportPDF] finalizing PDF");
-    doc.end();
-  } catch (error) {
-    console.error("Export PDF error:", error);
-    res.writeHead(500).end(JSON.stringify({ error: "Failed to export PDF" }));
-  }
 }
 
 // FRED daily mortgage rate endpoint (/api/rate)
@@ -556,7 +403,7 @@ const toolInputParser = z.object({
 const tools: Tool[] = widgets.map((widget) => ({
   name: widget.id,
   description:
-    "Open the free mortgage calculator tool. If the user asks generally (e.g., 'calculate my mortgage'), call this tool with an empty arguments object {} to open with defaults. If the user provides numbers, include any of: home_value, down_payment_value, rate_apr, term_years, loan_type.",
+    "Use this when you need a full mortgage-planning workspace that pulls live FRED rates, lets you adjust loan assumptions, and visualizes payments via charts and amortization tables. Do not use for unrelated financial products like auto loans or credit cards.",
   inputSchema: toolInputSchema,
   outputSchema: {
     type: "object",
@@ -751,115 +598,59 @@ function createMortgageCalculatorServer(): Server {
 
         // If ChatGPT didn't pass structured arguments, try to infer key numbers from freeform text in meta
         try {
-          const candidates: any[] = [
-            meta["openai/userPrompt"],
-            meta["openai/userText"],
-            meta["openai/lastUserMessage"],
-            meta["openai/inputText"],
-            meta["openai/requestText"],
-          ];
-          const userText = candidates.find((t) => typeof t === "string" && t.trim().length > 0) || "";
-          if (userText) {
-            const parseAmountToNumber = (s: string): number | null => {
-              const lower = s.toLowerCase().replace(/[,$\s]/g, "").trim();
-              const m = lower.match(/^(\d+(?:\.\d+)?)(m)$/);
-              const k = lower.match(/^(\d+(?:\.\d+)?)(k)$/);
-              if (m) return Math.round(parseFloat(m[1]) * 1_000_000);
-              if (k) return Math.round(parseFloat(k[1]) * 1_000);
-              const n = Number(lower.replace(/[^0-9.]/g, ""));
-              return Number.isFinite(n) ? Math.round(n) : null;
-            };
-            const parsePercentToNumber = (s: string): number | null => {
-              const m = s.match(/([-+]?\d+(?:\.\d+)?)\s*%?/);
-              if (!m) return null;
-              const n = Number(m[1]);
-              return Number.isFinite(n) ? n : null;
-            };
+          if (args.home_value === undefined || args.home_value === null) {
+            const candidates: any[] = [
+              meta["openai/userPrompt"],
+              meta["openai/userText"],
+              meta["openai/lastUserMessage"],
+              meta["openai/inputText"],
+              meta["openai/requestText"],
+            ];
+            const userText = candidates.find((t) => typeof t === "string" && t.trim().length > 0) || "";
+            if (userText) {
+              const parseAmountToNumber = (s: string): number | null => {
+                const lower = s.toLowerCase().replace(/[,$\s]/g, "").trim();
+                const m = lower.match(/^(\d+(?:\.\d+)?)(m)$/);
+                const k = lower.match(/^(\d+(?:\.\d+)?)(k)$/);
+                if (m) return Math.round(parseFloat(m[1]) * 1_000_000);
+                if (k) return Math.round(parseFloat(k[1]) * 1_000);
+                const n = Number(lower.replace(/[^0-9.]/g, ""));
+                return Number.isFinite(n) ? Math.round(n) : null;
+              };
 
-            // Home value (price) inference
-            if (args.home_value == null) {
-              const priceTarget = userText.match(/(?:home|house|property|mortgage|price|home\s*price|purchase\s*price|listing|cost)\b[^\d%$]{0,40}?\$?([\d.,]+\s*[kKmM]?)/i)
-                || userText.match(/\$\s*([\d.,]+\s*[kKmM]?)/i)
-                || userText.match(/([\d.,]+\s*[kKmM]?)\s*(?:home|house|property|mortgage|price)\b/i);
-              const tryAssignHome = (raw?: string | null) => {
+              // 1) Targeted pattern allowing determiners between preposition and number (e.g., "on a 500,000 home")
+              const targeted = userText.match(/(?:home|house|property|mortgage)\b[^\d$]{0,40}?\$?([\d,.]+\s*[kKmM]?)/i)
+                || userText.match(/\$\s*([\d,.]+\s*[kKmM]?)/i)
+                || userText.match(/([\d,.]+\s*[kKmM]?)\s*(?:home|house|property|mortgage)\b/i);
+
+              const tryAssign = (raw: string | null | undefined) => {
                 if (!raw) return false;
                 const parsed = parseAmountToNumber(raw);
                 if (parsed && parsed >= 50_000 && parsed <= 100_000_000) {
                   args.home_value = parsed;
-                  console.log("[Inference] home_value", { value: parsed, source: userText });
+                  console.log("[Inference] home_value inferred from user text", { home_value: parsed, source: userText });
                   return true;
                 }
                 return false;
               };
+
               let assigned = false;
-              if (priceTarget && priceTarget[1]) assigned = tryAssignHome(priceTarget[1]);
+              if (targeted && targeted[1]) {
+                assigned = tryAssign(targeted[1]);
+              }
+
+              // 2) Fallback: scan for any plausible amount near keywords within a small window
               if (!assigned) {
-                const priceKw = /(home|house|property|mortgage|price|listing|cost)/i;
+                const keywordRe = /(home|house|property|mortgage)/i;
                 const amountRe = /\$?\b(\d{1,3}(?:[.,]\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?\s*[kKmM]?)\b/g;
                 let match: RegExpExecArray | null;
                 while ((match = amountRe.exec(userText)) !== null) {
                   const start = Math.max(0, match.index - 40);
                   const end = Math.min(userText.length, amountRe.lastIndex + 40);
                   const windowText = userText.slice(start, end);
-                  if (priceKw.test(windowText) && tryAssignHome(match[1])) { break; }
-                }
-              }
-            }
-
-            // Down payment inference
-            if (args.down_payment_value == null) {
-              const downTarget = userText.match(/(?:down\s*payment|down\b|dp\b)\b[^\d%$]{0,40}?\$?([\d.,]+\s*[kKmM]?)/i)
-                || userText.match(/\$\s*([\d.,]+\s*[kKmM]?)\s*(?:down\s*payment|down\b|dp\b)/i);
-              const tryAssignDown = (raw?: string | null) => {
-                if (!raw) return false;
-                const parsed = parseAmountToNumber(raw);
-                if (parsed && parsed >= 0 && parsed <= 50_000_000) {
-                  args.down_payment_value = parsed;
-                  console.log("[Inference] down_payment_value", { value: parsed, source: userText });
-                  return true;
-                }
-                return false;
-              };
-              let assignedDown = false;
-              if (downTarget && downTarget[1]) assignedDown = tryAssignDown(downTarget[1]);
-              if (!assignedDown) {
-                const downKw = /(down\s*payment|down\b|dp\b)/i;
-                const amountRe = /\$?\b(\d{1,3}(?:[.,]\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?\s*[kKmM]?)\b/g;
-                let match: RegExpExecArray | null;
-                while ((match = amountRe.exec(userText)) !== null) {
-                  const start = Math.max(0, match.index - 40);
-                  const end = Math.min(userText.length, amountRe.lastIndex + 40);
-                  const windowText = userText.slice(start, end);
-                  if (downKw.test(windowText) && tryAssignDown(match[1])) { break; }
-                }
-              }
-            }
-
-            // Rate (APR) inference
-            if (args.rate_apr == null) {
-              const rateTarget = userText.match(/(?:interest(?:\s*rate)?|rate|apr)\b[^\d%]{0,40}?([-+]?\d+(?:\.\d+)?\s*%?)/i)
-                || userText.match(/([-+]?\d+(?:\.\d+)?)\s*%\s*(?:interest(?:\s*rate)?|rate|apr)/i);
-              const tryAssignRate = (raw?: string | null) => {
-                if (!raw) return false;
-                const parsed = parsePercentToNumber(raw);
-                if (parsed != null && parsed >= 0 && parsed <= 50) {
-                  args.rate_apr = parsed;
-                  console.log("[Inference] rate_apr", { value: parsed, source: userText });
-                  return true;
-                }
-                return false;
-              };
-              let assignedRate = false;
-              if (rateTarget && rateTarget[1]) assignedRate = tryAssignRate(rateTarget[1]);
-              if (!assignedRate) {
-                const rateKw = /(interest|apr|rate)/i;
-                const percentRe = /([-+]?\d+(?:\.\d+)?)\s*%/g;
-                let m: RegExpExecArray | null;
-                while ((m = percentRe.exec(userText)) !== null) {
-                  const start = Math.max(0, m.index - 40);
-                  const end = Math.min(userText.length, percentRe.lastIndex + 40);
-                  const windowText = userText.slice(start, end);
-                  if (rateKw.test(windowText) && tryAssignRate(m[0])) { break; }
+                  if (keywordRe.test(windowText)) {
+                    if (tryAssign(match[1])) { assigned = true; break; }
+                  }
                 }
               }
             }
@@ -961,8 +752,6 @@ const postPath = "/mcp/messages";
 const subscribePath = "/api/subscribe";
 const analyticsPath = "/analytics";
 const trackEventPath = "/api/track";
-const exportPdfPath = "/api/export-pdf";
-const pingPath = "/api/ping";
 const healthPath = "/health";
 const ratePath = "/api/rate";
 
@@ -1811,16 +1600,6 @@ const httpServer = createServer(
 
     if (url.pathname === trackEventPath) {
       await handleTrackEvent(req, res);
-      return;
-    }
-
-    if (url.pathname === pingPath) {
-      await handlePing(req, res);
-      return;
-    }
-
-    if (url.pathname === exportPdfPath) {
-      await handleExportPdf(req, res);
       return;
     }
 
