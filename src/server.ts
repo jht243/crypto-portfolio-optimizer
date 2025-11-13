@@ -372,7 +372,7 @@ function widgetMeta(widget: MortgageWidget, bustCache: boolean = false) {
   return {
     "openai/outputTemplate": templateUri,
     "openai/widgetDescription":
-      "Interactive mortgage-planning dashboard with live FRED-sourced rate badge, configurable loan inputs, payment breakdown charts, amortization timeline, and email notifications for rate drops.",
+      "Interactive mortgage-planning dashboard with live FRED-sourced rate badge, configurable loan inputs, payment breakdown charts, amortization timeline, and email notifications for rate drops. Works with general prompts too — if the user says something like 'calculate my mortgage' with no numbers, the calculator opens with sensible default values and the current live rate.",
     "openai/componentDescriptions": {
       "rate-indicator": "Header pill cluster that surfaces today's average 30-year fixed mortgage rate sourced from FRED, including the manual refresh control for forced updates.",
       "rate-badge": "Rounded badge displaying the most recent mortgage rate percentage that auto-updates after every successful API call.",
@@ -408,6 +408,8 @@ function widgetMeta(widget: MortgageWidget, bustCache: boolean = false) {
     "openai/widgetAccessible": true,
     "openai/resultCanProduceWidget": true,
     "openai/starterPrompts": [
+      "Calculate my mortgage",
+      "Estimate my mortgage payment",
       "Show the mortgage calculator with today's average rate and monthly payment summary",
       "Help me explore loan scenarios for buying a $600,000 home with different down payments",
       "Estimate monthly payments, payoff schedule, and total interest for a 15-year FHA mortgage",
@@ -492,7 +494,7 @@ const toolInputParser = z.object({
 const tools: Tool[] = widgets.map((widget) => ({
   name: widget.id,
   description:
-    "Use this when you need a full mortgage-planning workspace that pulls live FRED rates, lets you adjust loan assumptions, and visualizes payments via charts and amortization tables. Do not use for unrelated financial products like auto loans or credit cards.",
+    "Use this for mortgage planning. It pulls live FRED rates, lets you adjust assumptions, and visualizes payments and amortization. It will also open for general prompts (e.g., 'calculate my mortgage') and start with sensible defaults if no numbers are provided. Do not use for unrelated financial products like auto loans or credit cards.",
   inputSchema: toolInputSchema,
   outputSchema: {
     type: "object",
@@ -581,7 +583,7 @@ function createMortgageCalculatorServer(): Server {
       name: "mortgage-calculator",
       version: "0.1.0",
       description:
-        "Mortgage Calculator is a comprehensive mortgage planning assistant. It fetches authoritative rate data from the Federal Reserve (FRED), calculates monthly payments, taxes, insurance, PMI, and HOA costs, and renders interactive charts, amortization schedules, and payoff timelines so homebuyers can compare loan scenarios and understand lifetime costs before making decisions.",
+        "Mortgage Calculator is a comprehensive mortgage planning assistant. It fetches authoritative rate data from the Federal Reserve (FRED), calculates monthly payments, taxes, insurance, PMI, and HOA costs, and renders interactive charts, amortization schedules, and payoff timelines so homebuyers can compare loan scenarios and understand lifetime costs before making decisions. It responds to general prompts like 'calculate my mortgage' by opening with sensible default values and the current live rate.",
     },
     {
       capabilities: {
