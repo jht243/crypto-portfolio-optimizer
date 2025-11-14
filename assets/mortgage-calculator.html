@@ -3080,10 +3080,14 @@
         })();
         
         // Merge provided parameters with base defaults
-        const initialDefaults = { ...baseDefaults, ...providedParams };
-        
-        setDefaults(initialDefaults);
+        setDefaults(baseDefaults);
+        if (providedParams && typeof providedParams === 'object' && 'loan_type' in providedParams && providedParams.loan_type) {
+          if (inputs.loan_type) inputs.loan_type.value = providedParams.loan_type;
+        }
         mergeProgramDefaults();
+        if (providedParams && Object.keys(providedParams).length > 0) {
+          setDefaults(providedParams);
+        }
         calculateAndRender();
 
         // Fetch and display the latest daily rate from server (FRED + 0.5%)
