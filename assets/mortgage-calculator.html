@@ -309,16 +309,27 @@
       .scenario-bar {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 14px;
+        gap: 10px;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        margin: 8px 0 0;
+      }
+
+      [data-openai-component="loan-input-form"] .section-title {
+        margin-bottom: 0;
+      }
+
+      [data-openai-component="loan-input-form"] .grid {
+        margin-top: 24px;
       }
 
       .scenario-chip {
         padding: 8px 14px;
         border-radius: 999px;
-        border: 1px solid rgba(45, 64, 118, 0.55);
+        border: 1px solid rgba(167, 139, 250, 0.55); /* light purple border */
         background: rgba(20, 23, 42, 0.85);
-        color: rgba(226, 232, 240, 0.85);
+        color: #c4b5fd; /* light purple text */
         font-size: 11px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -328,18 +339,18 @@
 
       .scenario-chip:hover,
       .scenario-chip:focus-visible {
-        background: rgba(14, 165, 233, 0.14);
-        border-color: rgba(14, 165, 233, 0.65);
-        color: #0ea5e9;
+        background: rgba(167, 139, 250, 0.14); /* light purple wash */
+        border-color: rgba(167, 139, 250, 0.75);
+        color: #a78bfa; /* hover text */
         outline: none;
-        box-shadow: 0 6px 20px rgba(14, 165, 233, 0.25);
+        box-shadow: 0 6px 20px rgba(167, 139, 250, 0.28);
       }
 
       .scenario-chip.active {
-        background: linear-gradient(135deg, rgba(14,165,233,0.32), rgba(34,211,238,0.18));
-        border-color: rgba(14, 165, 233, 0.8);
-        color: #22d3ee;
-        box-shadow: 0 10px 28px rgba(14,165,233,0.28);
+        background: linear-gradient(135deg, rgba(167,139,250,0.32), rgba(167,139,250,0.18));
+        border-color: rgba(167, 139, 250, 0.85);
+        color: #e9d5ff; /* lighter purple when active */
+        box-shadow: 0 10px 28px rgba(167,139,250,0.32);
       }
 
       .card-controls {
