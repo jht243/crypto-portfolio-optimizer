@@ -37,7 +37,6 @@ type MortgageWidget = {
   invoking: string;
   invoked: string;
   html: string;
-  responseText: string;
 };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -428,8 +427,6 @@ const widgets: MortgageWidget[] = [
     invoked:
       "Here is the live mortgage calculator with configurable loan inputs, rate badge, payment breakdown, and amortization insights.",
     html: readWidgetHtml("mortgage-calculator"),
-    responseText:
-      "Here is an interactive mortgage calculator experience. It fetches the live 30-year fixed mortgage rate from FRED, lets you adjust home price, down payment, loan program, taxes, insurance, HOA dues, and extra payments, then visualizes monthly cash flow, payment composition, and amortization timelines.",
   },
 ];
 
