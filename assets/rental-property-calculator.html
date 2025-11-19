@@ -2009,13 +2009,11 @@
         </div>
         <div class="view-container is-hidden" id="amortizationView">
             <header>
-              <div class="header-row">
-                <h2>Breakdown Over Time (Year-by-Year)</h2>
-                <div class="button-row" id="showAmortizationSummaryBtn">
-                  <button type="button" class="cta-button secondary">&larr; Back to Inputs</button>
-                </div>
-              </div>
+              <h2>Breakdown Over Time (Year-by-Year)</h2>
               <p>Annual rollup of income, expenses, cash flow, returns, and equity.</p>
+              <div class="button-row" id="showAmortizationSummaryBtn">
+                <button type="button" class="cta-button secondary">&larr; Back to Inputs</button>
+              </div>
               <div class="button-row">
                 <button type="button" class="cta-button secondary" id="backToBreakdownBtn">&larr; Back to Breakdown</button>
               </div>
@@ -4273,34 +4271,39 @@ if (outputs.term_hint) outputs.term_hint.textContent = `Original term ${normaliz
           if (showAmortizationSummaryBtn) showAmortizationSummaryBtn.classList.toggle('is-hidden', viewToShow === 'summaryView');
         };
 
+        const scrollViewToTop = (viewEl) => {
+          if (!viewEl) return;
+          viewEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+
         if (showBreakdownBtn) {
           showBreakdownBtn.addEventListener('click', () => {
             showView('breakdownView');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            scrollViewToTop(breakdownView);
           });
         }
         if (showAmortizationBtn) {
           showAmortizationBtn.addEventListener('click', () => {
             showView('amortizationView');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            scrollViewToTop(amortizationView);
           });
         }
         if (showSummaryBtn) {
           showSummaryBtn.addEventListener('click', () => {
             showView('summaryView');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            scrollViewToTop(summaryView);
           });
         }
         if (showAmortizationSummaryBtn) {
           showAmortizationSummaryBtn.addEventListener('click', () => {
             showView('summaryView');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            scrollViewToTop(summaryView);
           });
         }
         if (backToBreakdownBtn) {
           backToBreakdownBtn.addEventListener('click', () => {
             showView('breakdownView');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            scrollViewToTop(breakdownView);
           });
         }
 
