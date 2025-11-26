@@ -412,6 +412,7 @@ const tools: Tool[] = widgets.map((widget) => ({
       height_cm: { type: "number" },
       weight_kg: { type: "number" },
       bmi: { type: "number" },
+      input_source: { type: "string", enum: ["user", "default"] },
       summary: {
         type: "object",
         properties: {
@@ -654,15 +655,35 @@ function createBmiHealthCalculatorServer(): Server {
 
         const responseTime = Date.now() - startTime;
 
-          // Infer likely user query from parameters
-          const inferredQuery = [] as string[];
-          if (args.height_cm) inferredQuery.push(`height: ${args.height_cm}cm`);
-          if (args.weight_kg) inferredQuery.push(`weight: ${args.weight_kg}kg`);
-          if (args.age_years) inferredQuery.push(`age: ${args.age_years}`);
-          if (args.gender) inferredQuery.push(`gender: ${args.gender}`);
-          if (args.activity_level) inferredQuery.push(`activity: ${args.activity_level}`);
+        const fallbackDefaults = {
+          height_cm: 170,
+          weight_kg: 70,
+          age_years: 30,
+          gender: "male" as const,
+          waist_cm: 80,
+          hip_cm: 95,
+          neck_cm: 40,
+          activity_level: "moderate" as const,
+        };
 
-          logAnalytics("tool_call_success", {
+        let usedDefaults = false;
+
+        (Object.keys(fallbackDefaults) as (keyof typeof fallbackDefaults)[]).forEach((key) => {
+          if (args[key] === undefined || args[key] === null) {
+            (args as any)[key] = fallbackDefaults[key];
+            usedDefaults = true;
+          }
+        });
+
+        // Infer likely user query from parameters
+        const inferredQuery = [] as string[];
+        if (args.height_cm) inferredQuery.push(`height: ${args.height_cm}cm`);
+        if (args.weight_kg) inferredQuery.push(`weight: ${args.weight_kg}kg`);
+        if (args.age_years) inferredQuery.push(`age: ${args.age_years}`);
+        if (args.gender) inferredQuery.push(`gender: ${args.gender}`);
+        if (args.activity_level) inferredQuery.push(`activity: ${args.activity_level}`);
+
+        logAnalytics("tool_call_success", {
             toolName: request.params.name,
             params: args,
             inferredQuery: inferredQuery.length > 0 ? inferredQuery.join(", ") : "BMI Health Calculator",
@@ -687,7 +708,7 @@ function createBmiHealthCalculatorServer(): Server {
 
           // Build structured content once so we can log it and return it.
           // For the health calculator, expose fields relevant to BMI/Body Fat
-          const structured = {
+        const structured = {
             ready: true,
             timestamp: new Date().toISOString(),
             height_cm: args.height_cm,
@@ -695,6 +716,7 @@ function createBmiHealthCalculatorServer(): Server {
             age_years: args.age_years,
             gender: args.gender,
             activity_level: args.activity_level,
+          input_source: usedDefaults ? "default" : "user",
             // Summary + follow-ups for natural language UX
             summary: computeSummary(args),
             suggested_followups: [
