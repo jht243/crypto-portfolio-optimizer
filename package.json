@@ -1,14 +1,14 @@
 {
-  "name": "bmi-health-calculator-mcp-node",
+  "name": "retirement-calculator-mcp-node",
   "version": "0.1.0",
   "type": "module",
   "private": true,
-  "description": "BMI Health Calculator — calculate body mass index and health metrics. Analysis of health data.",
+  "description": "Retirement Calculator — calculate retirement metrics. Analysis of retirement data.",
   "keywords": [
-    "bmi calculator",
-    "health calculator",
-    "body mass index",
-    "health metrics"
+    "retirement calculator",
+    "financial calculator",
+    "retirement",
+    "finance"
   ],
   "scripts": {
     "start": "tsx src/server.ts",

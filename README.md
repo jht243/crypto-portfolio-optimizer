@@ -1,13 +1,13 @@
-# BMI Health Calculator - ChatGPT MCP Connector
+# Retirement Calculator - ChatGPT MCP Connector
 
-A Model Context Protocol (MCP) server that provides an interactive BMI and health calculator widget for ChatGPT. Helps users estimate body mass index and analyze health metrics.
+A Model Context Protocol (MCP) server that provides an interactive Retirement and finance calculator widget for ChatGPT. Helps users estimate retirement needs and analyze finance metrics.
 
 ## Features
 
-- 💰 Calculate BMI
-- 📊 Simple inputs: height, weight
+- 💰 Calculate Retirement
+- 📊 Simple inputs: height, weight, age (as proxies for financial data in this demo)
 - 🔄 Interactive widget that appears directly in ChatGPT
-- 📈 Shows health category breakdown
+- 📈 Shows retirement status breakdown
 
 ## Quick Start
 
@@ -49,7 +49,7 @@ Your permanent URL: `https://your-app.onrender.com/mcp`
 
 1. Open ChatGPT in **Developer Mode**
 2. Add MCP Connector with URL: `https://your-app.onrender.com/mcp`
-3. Say: **"show me an auto loan calculator"**
+3. Say: **"calculate my retirement"**
 4. The interactive widget appears!
 
 ## Tech Stack
@@ -74,7 +74,7 @@ ANALYTICS_PASSWORD=your_password
 
 ## Privacy & Data Use
 
-- **What we collect:** When the widget runs inside ChatGPT we receive the location (city/region/country), locale, device/browser fingerprint, and an inferred health query via `_meta` so we can prefill the calculator and measure usage.
+- **What we collect:** When the widget runs inside ChatGPT we receive the location (city/region/country), locale, device/browser fingerprint, and an inferred retirement query via `_meta` so we can prefill the calculator and measure usage.
 - **How we use it:** These fields feed the `/analytics` dashboard and error alerts only; we do not sell or share this data with third parties.
 - **Retention:** Logs are stored for **30 days** in the `/logs` folder on the server and then automatically rotated.
 - **User input storage:** The widget caches your in-progress form values in `localStorage` so they persist across refreshes; entries automatically expire after **30 days**. Clear them anytime with the “Reset defaults” button.

@@ -1,7 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 
-import BmiHealthHelloWorld from "./component";
+import RetirementCalculatorHelloWorld from "./component";
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -107,13 +107,13 @@ const getHydrationData = (): any => {
   return {};
 };
 
-console.log("[Main] BMI Health Calculator main.tsx loading...");
+console.log("[Main] Retirement Calculator main.tsx loading...");
 
 // Get initial data
-const container = document.getElementById("bmi-health-calculator-root");
+const container = document.getElementById("retirement-calculator-root");
 
 if (!container) {
-  throw new Error("bmi-health-calculator-root element not found");
+  throw new Error("retirement-calculator-root element not found");
 }
 
 const root = createRoot(container);
@@ -122,7 +122,7 @@ const renderApp = (data: any) => {
   root.render(
     <React.StrictMode>
       <ErrorBoundary>
-        <BmiHealthHelloWorld key={Date.now()} initialData={data} />
+        <RetirementCalculatorHelloWorld key={Date.now()} initialData={data} />
       </ErrorBoundary>
     </React.StrictMode>
   );

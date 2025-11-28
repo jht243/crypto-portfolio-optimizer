@@ -30,7 +30,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 
-type BmiHealthWidget = {
+type RetirementCalculatorWidget = {
   id: string;
   title: string;
   templateUri: string;
@@ -67,12 +67,12 @@ if (!fs.existsSync(LOGS_DIR)) {
   fs.mkdirSync(LOGS_DIR, { recursive: true });
 }
 
-// FRED daily mortgage rate endpoint logic removed for BMI Health Calculator
+// FRED daily mortgage rate endpoint logic removed for Retirement Calculator
 type RateCache = { ts: number; payload: any } | null;
 let fredRateCache: RateCache = null;
 
 async function fetchFredLatestRate(): Promise<{ raw: number; adjusted: number; observationDate: string; source: string; } | null> {
-  // FRED integration is disabled/removed for BMI context
+  // FRED integration is disabled/removed for Retirement context
   return null;
 }
 
@@ -80,7 +80,7 @@ async function handleRate(req: IncomingMessage, res: ServerResponse) {
   // ...
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Content-Type", "application/json");
-  res.writeHead(200).end(JSON.stringify({ note: "Rate endpoint not used in BMI calculator" }));
+  res.writeHead(200).end(JSON.stringify({ note: "Rate endpoint not used in Retirement calculator" }));
 }
 
 type AnalyticsEvent = {
@@ -141,102 +141,29 @@ function classifyDevice(userAgent?: string | null): string {
 }
 
 function computeSummary(args: any) {
-  const height = Number(args.height_cm);
-  const weight = Number(args.weight_kg);
-  const age = Number(args.age_years);
-  const gender = args.gender;
-  const waist = Number(args.waist_cm);
-  const hip = Number(args.hip_cm);
-  const neck = Number(args.neck_cm);
-  const activity = args.activity_level || "sedentary";
-
-  if (!height || !weight) {
+  const currentAge = Number(args.current_age);
+  const income = Number(args.annual_pre_tax_income);
+  const savings = Number(args.current_retirement_savings);
+  
+  if (!currentAge || !income || !savings) {
     return {
-      bmi: null,
-      bmi_category: null,
-      ideal_weight_min: null,
-      ideal_weight_max: null,
-      body_fat_pct: null,
-      tdee_calories: null,
+      retirement_score: null,
+      retirement_status: null,
+      projected_savings: null,
     };
   }
 
-  // BMI Calculation
-  const heightM = height / 100;
-  const bmi = weight / (heightM * heightM);
+  // Simple heuristic for summary
+  const retirementScore = savings / income;
   
-  let bmiCategory = "Normal weight";
-  if (bmi < 18.5) bmiCategory = "Underweight";
-  else if (bmi >= 25 && bmi < 30) bmiCategory = "Overweight";
-  else if (bmi >= 30) bmiCategory = "Obese";
-
-  // Ideal Body Weight (Devine Formula)
-  // Male: 50 kg + 2.3 kg per inch over 5 feet
-  // Female: 45.5 kg + 2.3 kg per inch over 5 feet
-  const heightInches = height / 2.54;
-  const inchesOver60 = Math.max(0, heightInches - 60);
-  let idealWeight = 0;
-  if (gender === "female") {
-    idealWeight = 45.5 + (2.3 * inchesOver60);
-  } else {
-    // Default to male if unknown
-    idealWeight = 50.0 + (2.3 * inchesOver60);
-  }
-  const idealWeightMin = Math.round((idealWeight * 0.9) * 10) / 10;
-  const idealWeightMax = Math.round((idealWeight * 1.1) * 10) / 10;
-
-  // Body Fat (U.S. Navy Method)
-    // Male: 495 / (1.0324 - 0.19077(log10(waist-neck)) + 0.15456(log10(height))) - 450
-    // Female: 495 / (1.29579 - 0.35004(log10(waist+hip-neck)) + 0.22100(log10(height))) - 450
-  let bodyFat = null;
-  if (waist && neck && height) {
-      const h = height;
-      const w = waist;
-      const n = neck;
-      
-      if (gender === 'male') {
-        // D = 1.0324 - 0.19077 * log10(W-N) + 0.15456 * log10(H)
-        if (w > n) {
-            const density = 1.0324 - 0.19077 * Math.log10(w - n) + 0.15456 * Math.log10(h);
-            bodyFat = (495 / density) - 450;
-        }
-      } else if (gender === 'female' && hip) {
-        // D = 1.29579 - 0.35004 * Math.log10(waist + hip - n) + 0.22100 * Math.log10(h);
-        if (w + hip > n) {
-            const density = 1.29579 - 0.35004 * Math.log10(w + hip - n) + 0.22100 * Math.log10(h);
-            bodyFat = (495 / density) - 450;
-        }
-      }
-  }
-
-  // TDEE / Calorie Calculation (Mifflin-St Jeor)
-  // Men: 10*W + 6.25*H - 5*A + 5
-  // Women: 10*W + 6.25*H - 5*A - 161
-  let bmr = 0;
-  if (gender === 'female') {
-    bmr = (10 * weight) + (6.25 * height) - (5 * (age || 30)) - 161;
-  } else {
-    bmr = (10 * weight) + (6.25 * height) - (5 * (age || 30)) + 5;
-  }
-
-  const activityMultipliers: Record<string, number> = {
-    "sedentary": 1.2,
-    "light": 1.375,
-    "moderate": 1.55,
-    "active": 1.725,
-    "very_active": 1.9,
-    "extra_active": 1.9
-  };
-  
-  const tdee = Math.round(bmr * (activityMultipliers[activity] || 1.2));
+  let retirementStatus = "Needs Attention";
+  if (retirementScore > 1.0) retirementStatus = "On Track";
+  else if (retirementScore > 0.5) retirementStatus = "Getting There";
 
   return {
-    bmi: Math.round(bmi * 10) / 10,
-    bmi_category: bmiCategory,
-    ideal_weight_min: idealWeightMin,
-    ideal_weight_max: idealWeightMax,
-    body_fat_pct: bodyFat ? Math.round(bodyFat * 10) / 10 : null,
-    tdee_calories: tdee,
+    retirement_score: Math.round(retirementScore * 10) / 10,
+    retirement_status: retirementStatus,
+    projected_savings: null // Placeholder
   };
 }
 
@@ -284,61 +211,58 @@ function readWidgetHtml(componentName: string): string {
 
   return htmlContents;
 }
+
 // Use git commit hash for deterministic cache-busting across deploys
 // Added timestamp suffix to force cache invalidation for width fix
 const VERSION = (process.env.RENDER_GIT_COMMIT?.slice(0, 7) || Date.now().toString()) + '-' + Date.now();
 
-function widgetMeta(widget: BmiHealthWidget, bustCache: boolean = false) {
+function widgetMeta(widget: RetirementCalculatorWidget, bustCache: boolean = false) {
   const templateUri = bustCache
-    ? `ui://widget/bmi-health-calculator.html?v=${VERSION}`
+    ? `ui://widget/retirement-calculator.html?v=${VERSION}`
     : widget.templateUri;
 
   return {
     "openai/outputTemplate": templateUri,
     "openai/widgetDescription":
-      "A comprehensive health calculator for BMI, Ideal Weight, Body Fat Percentage, and Calorie Needs. Opens immediately and works with or without user inputs.",
+      "A comprehensive retirement calculator for Retirement planning. Opens immediately and calculates retirement metrics when provided with income, savings, and age.",
     "openai/componentDescriptions": {
-      "metrics-form": "Input form for height, weight, age, gender, and other body measurements.",
-      "bmi-card": "Card displaying the calculated Body Mass Index and health category.",
-      "ideal-weight-card": "Card showing the estimated ideal weight range based on height and gender.",
-      "body-fat-card": "Card showing estimated body fat percentage using the US Navy method.",
-      "calorie-card": "Card showing daily calorie needs (TDEE) based on activity level."
+      "metrics-form": "Input form for income, savings, and age.",
+      "retirement-card": "Card displaying the calculated Retirement and retirement category.",
+      "projected-savings-card": "Card showing the estimated projected savings.",
     },
     "openai/widgetKeywords": [
-      "bmi",
-      "body fat",
-      "ideal weight",
-      "calories",
-      "tdee",
-      "health calculator",
-      "weight loss",
-      "fitness",
-      "diet"
+      "retirement",
+      "planning",
+      "income",
+      "savings",
+      "retirement calculator",
+      "finance",
+      "investment"
     ],
     "openai/sampleConversations": [
-      { "user": "Calculate my BMI", "assistant": "Here is the BMI Health Calculator. You can enter your measurements when ready, or I can help calculate if you provide them." },
-      { "user": "Calculate my BMI, I am 180cm and 75kg.", "assistant": "I can help with that. Here is your BMI calculation." },
-      { "user": "What is my ideal weight if I'm 5'6\" female?", "assistant": "I've estimated your ideal weight range based on your height and gender." },
-      { "user": "Estimate body fat for 30yo male, waist 90cm, neck 38cm, height 178cm.", "assistant": "Using the US Navy method, here is your estimated body fat percentage." },
-      { "user": "How many calories should I eat to lose weight? I'm active.", "assistant": "I can calculate your daily calorie needs based on your activity level." }
+      { "user": "Calculate my Retirement", "assistant": "Here is the Retirement Calculator. You can enter your income, savings, and age when ready, or I can help calculate if you provide them." },
+      { "user": "Calculate my Retirement, I am 35 years old, make $100,000, and have $50,000 in savings.", "assistant": "I can help with that. Here is your Retirement calculation." },
+      { "user": "What is my projected savings if I'm 40 years old, make $80,000, and have $30,000 in savings?", "assistant": "I've estimated your projected savings based on your income, savings, and age." },
     ],
     "openai/starterPrompts": [
-      "Calculate BMI",
-      "Ideal Weight",
-      "Body Fat Calculator",
-      "Calorie Calculator",
-      "Am I overweight?",
+      "Calculate My Retirement",
+      "Retirement Planning",
+      "Income Calculator",
+      "Savings Calculator",
+      "Retirement Calculator",
+      "Finance Calculator",
+      "Investment Calculator",
     ],
     "openai/widgetPrefersBorder": true,
     "openai/widgetCSP": {
       connect_domains: [
         "https://api.stlouisfed.org",
-        "https://body-health-calculator.onrender.com",
+        "https://retirement-calculator.onrender.com",
         "http://localhost:8010",
         "https://challenges.cloudflare.com"
       ],
       script_src_domains: [
-        "https://body-health-calculator.onrender.com",
+        "https://retirement-calculator.onrender.com",
         "https://challenges.cloudflare.com"
       ],
       resource_domains: [],
@@ -351,21 +275,21 @@ function widgetMeta(widget: BmiHealthWidget, bustCache: boolean = false) {
   } as const;
 }
 
-const widgets: BmiHealthWidget[] = [
+const widgets: RetirementCalculatorWidget[] = [
   {
-    id: "bmi-health-calculator",
-    title: "BMI Health Calculator — analyze body mass index and health",
-    templateUri: `ui://widget/bmi-health-calculator.html?v=${VERSION}`,
+    id: "retirement-calculator",
+    title: "Retirement Calculator — analyze retirement and finance",
+    templateUri: `ui://widget/retirement-calculator.html?v=${VERSION}`,
     invoking:
-      "Opening the BMI Health Calculator...",
+      "Opening the Retirement Calculator...",
     invoked:
-      "Here is the BMI Health Calculator. Enter your measurements to calculate your health metrics.",
-    html: readWidgetHtml("bmi-health-calculator"),
+      "Here is the Retirement Calculator. Enter your income, savings, and age to calculate your retirement metrics.",
+    html: readWidgetHtml("retirement-calculator"),
   },
 ];
 
-const widgetsById = new Map<string, BmiHealthWidget>();
-const widgetsByUri = new Map<string, BmiHealthWidget>();
+const widgetsById = new Map<string, RetirementCalculatorWidget>();
+const widgetsByUri = new Map<string, RetirementCalculatorWidget>();
 
 widgets.forEach((widget) => {
   widgetsById.set(widget.id, widget);
@@ -375,18 +299,18 @@ widgets.forEach((widget) => {
 const toolInputSchema = {
   type: "object",
   properties: {
-    height_cm: { type: "number", description: "Height in centimeters." },
-    weight_kg: { type: "number", description: "Weight in kilograms." },
-    age_years: { type: "number", description: "Age in years." },
-    gender: { type: "string", enum: ["male", "female"], description: "Biological sex for formula selection." },
-    waist_cm: { type: "number", description: "Waist circumference in cm (for body fat)." },
-    hip_cm: { type: "number", description: "Hip circumference in cm (for body fat, female)." },
-    neck_cm: { type: "number", description: "Neck circumference in cm (for body fat)." },
-    activity_level: { 
-        type: "string", 
-        enum: ["sedentary", "light", "moderate", "active", "very_active", "extra_active"],
-        description: "Activity level for TDEE calculation."
-    }
+    current_age: { type: "number", description: "Current age of the user." },
+    annual_pre_tax_income: { type: "number", description: "Annual pre-tax income." },
+    current_retirement_savings: { type: "number", description: "Total current retirement savings." },
+    monthly_contributions: { type: "number", description: "Monthly contribution amount." },
+    monthly_budget_in_retirement: { type: "number", description: "Estimated monthly budget needed in retirement." },
+    other_retirement_income: { type: "number", description: "Other monthly retirement income." },
+    retirement_age: { type: "number", description: "Target retirement age." },
+    life_expectancy: { type: "number", description: "Estimated life expectancy." },
+    pre_retirement_rate_of_return: { type: "number", description: "Expected annual rate of return before retirement." },
+    post_retirement_rate_of_return: { type: "number", description: "Expected annual rate of return after retirement." },
+    inflation_rate: { type: "number", description: "Expected annual inflation rate." },
+    annual_income_increase: { type: "number", description: "Expected annual income increase." }
   },
   required: [],
   additionalProperties: false,
@@ -394,39 +318,41 @@ const toolInputSchema = {
 } as const;
 
 const toolInputParser = z.object({
-  height_cm: z.number().optional(),
-  weight_kg: z.number().optional(),
-  age_years: z.number().optional(),
-  gender: z.enum(["male", "female"]).optional(),
-  waist_cm: z.number().optional(),
-  hip_cm: z.number().optional(),
-  neck_cm: z.number().optional(),
-  activity_level: z.enum(["sedentary", "light", "moderate", "active", "very_active", "extra_active"]).optional(),
+  current_age: z.number().optional(),
+  annual_pre_tax_income: z.number().optional(),
+  current_retirement_savings: z.number().optional(),
+  monthly_contributions: z.number().optional(),
+  monthly_budget_in_retirement: z.number().optional(),
+  other_retirement_income: z.number().optional(),
+  retirement_age: z.number().optional(),
+  life_expectancy: z.number().optional(),
+  pre_retirement_rate_of_return: z.number().optional(),
+  post_retirement_rate_of_return: z.number().optional(),
+  inflation_rate: z.number().optional(),
+  annual_income_increase: z.number().optional(),
 });
 
 const tools: Tool[] = widgets.map((widget) => ({
   name: widget.id,
   description:
-    "Use this for BMI, Ideal Weight, and Body Fat analysis. Opens immediately and calculates health metrics when provided with height, weight, and other inputs. Works with partial or no inputs - the calculator will open regardless.",
+    "Use this for Retirement planning. Opens immediately and calculates retirement metrics when provided with income, savings, and age.",
   inputSchema: toolInputSchema,
   outputSchema: {
     type: "object",
     properties: {
       ready: { type: "boolean" },
       timestamp: { type: "string" },
-      height_cm: { type: "number" },
-      weight_kg: { type: "number" },
-      bmi: { type: "number" },
+      current_age: { type: "number" },
+      annual_pre_tax_income: { type: "number" },
+      current_retirement_savings: { type: "number" },
+      retirement_score: { type: "number" },
       input_source: { type: "string", enum: ["user", "default"] },
       summary: {
         type: "object",
         properties: {
-          bmi: { type: ["number", "null"] },
-          bmi_category: { type: ["string", "null"] },
-          ideal_weight_min: { type: ["number", "null"] },
-          ideal_weight_max: { type: ["number", "null"] },
-          body_fat_pct: { type: ["number", "null"] },
-          tdee_calories: { type: ["number", "null"] },
+          retirement_score: { type: ["number", "null"] },
+          retirement_status: { type: ["string", "null"] },
+          projected_savings: { type: ["number", "null"] },
         },
       },
       suggested_followups: {
@@ -452,7 +378,7 @@ const resources: Resource[] = widgets.map((widget) => ({
   uri: widget.templateUri,
   name: widget.title,
   description:
-    "HTML template for the BMI, Fitness, Calorie, and Body Fat Health Calculator widget.",
+    "HTML template for the Retirement, Planning, Income, and Asset Allocation Retirement Calculator widget.",
   mimeType: "text/html+skybridge",
   _meta: widgetMeta(widget),
 }));
@@ -461,18 +387,18 @@ const resourceTemplates: ResourceTemplate[] = widgets.map((widget) => ({
   uriTemplate: widget.templateUri,
   name: widget.title,
   description:
-    "Template descriptor for the BMI, Fitness, Calorie, and Body Fat Health Calculator widget.",
+    "Template descriptor for the Retirement, Planning, Income, and Asset Allocation Retirement Calculator widget.",
   mimeType: "text/html+skybridge",
   _meta: widgetMeta(widget),
 }));
 
-function createBmiHealthCalculatorServer(): Server {
+function createRetirementCalculatorServer(): Server {
   const server = new Server(
     {
-      name: "bmi-health-calculator",
+      name: "retirement-calculator",
       version: "0.1.0",
       description:
-        "BMI Health Calculator is a comprehensive app for analyzing health metrics.",
+        "Retirement Calculator is a comprehensive app for analyzing retirement metrics.",
     },
     {
       capabilities: {
@@ -503,7 +429,7 @@ function createBmiHealthCalculatorServer(): Server {
       }
 
       // Inject current FRED rate into HTML before sending to ChatGPT
-      // (Logic removed for BMI calculator)
+      // (Logic removed for Retirement calculator)
       let htmlToSend = widget.html;
       
       if (TURNSTILE_SITE_KEY) {
@@ -601,56 +527,20 @@ function createBmiHealthCalculatorServer(): Server {
           };
 
           // Infer height and weight
-          if (args.height_cm === undefined) {
-            // Try to find "180 cm" or "1.8 m" or "5'10"
-            const heightMatch = userText.match(/(\d+)\s*cm\b/i) || userText.match(/(\d+(?:\.\d+)?)\s*m\b/i);
-            if (heightMatch) {
-              let h = parseFloat(heightMatch[1]);
-              if (heightMatch[0].includes("m")) h *= 100; // convert m to cm
-              if (h > 50 && h < 300) args.height_cm = Math.round(h);
-            }
-            // Imperial: 5'10" or 5 ft 10
-            const ftMatch = userText.match(/(\d+)'(\d+)(?:"|'')?/);
-            if (ftMatch) {
-              const ft = parseInt(ftMatch[1], 10);
-              const inch = parseInt(ftMatch[2], 10);
-              args.height_cm = Math.round((ft * 30.48) + (inch * 2.54));
-            }
+          if (args.current_age === undefined) {
+             // Basic regex for age
+             const ageMatch = userText.match(/\b(\d{1,3})\s*(?:yo|years|year old)\b/i);
+             if (ageMatch) {
+               const age = parseInt(ageMatch[1], 10);
+               if (age > 0 && age < 120) args.current_age = age;
+             }
           }
-
-          if (args.weight_kg === undefined) {
-            // Try to find "75 kg" or "165 lbs"
-            const weightMatch = userText.match(/(\d+(?:\.\d+)?)\s*(kg|kgs|kilo|lbs|lb|pound|pounds)\b/i);
-            if (weightMatch) {
-              let w = parseFloat(weightMatch[1]);
-              const unit = weightMatch[2].toLowerCase();
-              if (unit.startsWith("lb") || unit.startsWith("pound")) {
-                w = w * 0.453592;
-              }
-              if (w > 20 && w < 600) args.weight_kg = Math.round(w * 10) / 10;
-            }
-          }
-
-          // Infer age
-          if (args.age_years === undefined) {
-            const ageMatch = userText.match(/\b(\d{1,3})\s*(?:yo|years|year old)\b/i);
-            if (ageMatch) {
-              const age = parseInt(ageMatch[1], 10);
-              if (age > 0 && age < 120) args.age_years = age;
-            }
-          }
-
-          // Infer gender
-          if (args.gender === undefined) {
-            if (/\b(?:male|man|boy|guy)\b/i.test(userText)) args.gender = "male";
-            else if (/\b(?:female|woman|girl|lady)\b/i.test(userText)) args.gender = "female";
-          }
-
-          // Infer activity level
-          if (args.activity_level === undefined) {
-             if (/\b(?:sedentary|desk job|no exercise)\b/i.test(userText)) args.activity_level = "sedentary";
-             else if (/\b(?:light|active|exercise)\b/i.test(userText)) args.activity_level = "light";
-             else if (/\b(?:athlete|training|gym)\b/i.test(userText)) args.activity_level = "active";
+          
+          if (args.annual_pre_tax_income === undefined) {
+             const incomeMatch = userText.match(/make\s*\$?(\d+(?:,\d{3})*(?:\.\d+)?)/i);
+             if (incomeMatch) {
+                args.annual_pre_tax_income = parseFloat(incomeMatch[1].replace(/,/g, ''));
+             }
           }
 
         } catch (e) {
@@ -661,14 +551,18 @@ function createBmiHealthCalculatorServer(): Server {
         const responseTime = Date.now() - startTime;
 
         const fallbackDefaults = {
-          height_cm: 170,
-          weight_kg: 70,
-          age_years: 30,
-          gender: "male" as const,
-          waist_cm: 80,
-          hip_cm: 95,
-          neck_cm: 40,
-          activity_level: "moderate" as const,
+          current_age: 35,
+          annual_pre_tax_income: 60000,
+          current_retirement_savings: 30000,
+          monthly_contributions: 500,
+          monthly_budget_in_retirement: 2561,
+          other_retirement_income: 0,
+          retirement_age: 67,
+          life_expectancy: 95,
+          pre_retirement_rate_of_return: 6,
+          post_retirement_rate_of_return: 5,
+          inflation_rate: 3,
+          annual_income_increase: 2
         };
 
         let usedDefaults = false;
@@ -682,16 +576,14 @@ function createBmiHealthCalculatorServer(): Server {
 
         // Infer likely user query from parameters
         const inferredQuery = [] as string[];
-        if (args.height_cm) inferredQuery.push(`height: ${args.height_cm}cm`);
-        if (args.weight_kg) inferredQuery.push(`weight: ${args.weight_kg}kg`);
-        if (args.age_years) inferredQuery.push(`age: ${args.age_years}`);
-        if (args.gender) inferredQuery.push(`gender: ${args.gender}`);
-        if (args.activity_level) inferredQuery.push(`activity: ${args.activity_level}`);
+        if (args.current_age) inferredQuery.push(`age: ${args.current_age}`);
+        if (args.annual_pre_tax_income) inferredQuery.push(`income: ${args.annual_pre_tax_income}`);
+        if (args.current_retirement_savings) inferredQuery.push(`savings: ${args.current_retirement_savings}`);
 
         logAnalytics("tool_call_success", {
           toolName: request.params.name,
           params: args,
-          inferredQuery: inferredQuery.length > 0 ? inferredQuery.join(", ") : "BMI Health Calculator",
+          inferredQuery: inferredQuery.length > 0 ? inferredQuery.join(", ") : "Retirement Calculator",
           responseTime,
 
           device: deviceCategory,
@@ -712,23 +604,21 @@ function createBmiHealthCalculatorServer(): Server {
         console.log(`[MCP] Tool called: ${request.params.name}, returning templateUri: ${(widgetMetadata as any)["openai/outputTemplate"]}`);
 
         // Build structured content once so we can log it and return it.
-        // For the health calculator, expose fields relevant to BMI/Body Fat
+        // For the retirement calculator, expose fields relevant to Retirement/Asset Allocation
         const structured = {
           ready: true,
           timestamp: new Date().toISOString(),
-          height_cm: args.height_cm,
-          weight_kg: args.weight_kg,
-          age_years: args.age_years,
-          gender: args.gender,
-            activity_level: args.activity_level,
+          current_age: args.current_age,
+          annual_pre_tax_income: args.annual_pre_tax_income,
+          current_retirement_savings: args.current_retirement_savings,
+          monthly_contributions: args.monthly_contributions,
           input_source: usedDefaults ? "default" : "user",
           // Summary + follow-ups for natural language UX
           summary: computeSummary(args),
           suggested_followups: [
-            "How much weight should I lose?",
-            "What is a healthy BMI range?",
-            "Calculate body fat percentage",
-              "What is my TDEE?"
+            "Will I have enough to retire?",
+            "How much more should I save?",
+            "What if I retire later?"
           ],
         } as const;
 
@@ -753,7 +643,7 @@ function createBmiHealthCalculatorServer(): Server {
         try {
           // Check for "empty" result - effectively when no main calculation inputs are provided
           // This mimics the "filteredSettlements.length === 0" logic from the prior project
-          const hasMainInputs = args.height_cm || args.weight_kg || args.age_years;
+          const hasMainInputs = args.annual_pre_tax_income || args.current_retirement_savings || args.current_age;
           
           if (!hasMainInputs) {
              logAnalytics("tool_call_empty", {
@@ -965,7 +855,7 @@ function generateAnalyticsDashboard(logs: AnalyticsEvent[], alerts: AlertEntry[]
       : "N/A";
 
   const paramUsage: Record<string, number> = {};
-  const bmiCatDist: Record<string, number> = {};
+  const retirementStatusDist: Record<string, number> = {};
   
   successLogs.forEach((log) => {
     if (log.params) {
@@ -975,9 +865,9 @@ function generateAnalyticsDashboard(logs: AnalyticsEvent[], alerts: AlertEntry[]
         }
       });
     }
-    if (log.structuredContent?.summary?.bmi_category) {
-       const cat = log.structuredContent.summary.bmi_category;
-       bmiCatDist[cat] = (bmiCatDist[cat] || 0) + 1;
+    if (log.structuredContent?.summary?.retirement_status) {
+       const cat = log.structuredContent.summary.retirement_status;
+       retirementStatusDist[cat] = (retirementStatusDist[cat] || 0) + 1;
     }
   });
   
@@ -1046,7 +936,7 @@ function generateAnalyticsDashboard(logs: AnalyticsEvent[], alerts: AlertEntry[]
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BMI Health Calculator Analytics</title>
+  <title>Retirement Calculator Analytics</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; padding: 20px; }
@@ -1073,7 +963,7 @@ function generateAnalyticsDashboard(logs: AnalyticsEvent[], alerts: AlertEntry[]
 </head>
 <body>
   <div class="container">
-    <h1>📊 BMI Health Calculator Analytics</h1>
+    <h1>📊 Retirement Calculator Analytics</h1>
     <p class="subtitle">Last 7 days • Auto-refresh every 60s</p>
     
     <div class="grid">
@@ -1131,11 +1021,11 @@ function generateAnalyticsDashboard(logs: AnalyticsEvent[], alerts: AlertEntry[]
 
     <div class="grid" style="margin-bottom: 20px;">
       <div class="card">
-        <h2>BMI Categories</h2>
+        <h2>Retirement Status Categories</h2>
         <table>
           <thead><tr><th>Category</th><th>Count</th></tr></thead>
           <tbody>
-            ${Object.entries(bmiCatDist).length > 0 ? Object.entries(bmiCatDist)
+            ${Object.entries(retirementStatusDist).length > 0 ? Object.entries(retirementStatusDist)
               .sort((a, b) => b[1] - a[1])
               .map(
                 ([cat, count]) => `
@@ -1658,7 +1548,7 @@ async function handleSubscribe(req: IncomingMessage, res: ServerResponse) {
 
 async function handleSseRequest(res: ServerResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  const server = createBmiHealthCalculatorServer();
+  const server = createRetirementCalculatorServer();
   const transport = new SSEServerTransport(postPath, res);
   const sessionId = transport.sessionId;
 
@@ -1776,8 +1666,8 @@ const httpServer = createServer(
     }
 
     // Serve alias for legacy loader path -> our main widget HTML
-    if (req.method === "GET" && url.pathname === "/assets/bmi-health-calculator.html") {
-      const mainAssetPath = path.join(ASSETS_DIR, "bmi-health-calculator.html");
+    if (req.method === "GET" && url.pathname === "/assets/retirement-calculator.html") {
+      const mainAssetPath = path.join(ASSETS_DIR, "retirement-calculator.html");
       if (fs.existsSync(mainAssetPath) && fs.statSync(mainAssetPath).isFile()) {
         res.writeHead(200, {
           "Content-Type": "text/html",
@@ -1813,7 +1703,7 @@ const httpServer = createServer(
         });
 
         // If serving the main widget HTML, inject the current rate into the badge
-        if (ext === ".html" && path.basename(assetPath) === "bmi-health-calculator.html") {
+        if (ext === ".html" && path.basename(assetPath) === "retirement-calculator.html") {
           try {
             let html = fs.readFileSync(assetPath, "utf8");
             
@@ -1845,7 +1735,7 @@ httpServer.on("clientError", (err: Error, socket) => {
 });
 
 httpServer.listen(port, () => {
-  console.log(`BMI Health Calculator MCP server listening on http://localhost:${port}`);
+  console.log(`Retirement Calculator MCP server listening on http://localhost:${port}`);
   console.log(`  SSE stream: GET http://localhost:${port}${ssePath}`);
   console.log(
     `  Message post endpoint: POST http://localhost:${port}${postPath}?sessionId=...`

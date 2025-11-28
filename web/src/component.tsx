@@ -7,13 +7,21 @@ import {
   ChevronDown,
   Printer,
   Heart,
-  Camera,
-  Upload,
   Loader,
-  ShoppingCart,
   Mail,
-  MessageSquare
+  MessageSquare,
+  HelpCircle
 } from "lucide-react";
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  ReferenceDot
+} from 'recharts';
 
 const COLORS = {
   primary: "#56C596", // Mint Green
@@ -30,51 +38,42 @@ const COLORS = {
   red: "#FF6B6B",
   orange: "#F2994A",
   orangeLight: "#FFF7ED",
-  saveGreen: "#4D7C0F", // Dark green for table header
-  tableHeader: "#2563EB" // Blue for table header
+  saveGreen: "#4D7C0F",
+  tableHeader: "#2563EB"
 };
 
-type UnitSystem = "US" | "Metric";
-type Gender = "male" | "female";
-type ActivityLevel = "sedentary" | "light" | "moderate" | "active" | "very_active" | "extra_active";
-type CalculatorType = "BMI Calculator" | "Ideal Weight Calculator" | "Body Fat Calculator" | "Calorie Calculator" | "My Photo Health Calculator";
-
 interface CalculatorValues {
-  units: UnitSystem;
-  gender: Gender;
-  age: string;
-  heightCm: string;
-  heightFt: string;
-  heightIn: string;
-  weightKg: string;
-  weightLbs: string;
-  neckCm: string;
-  neckIn: string;
-  waistCm: string;
-  waistIn: string;
-  hipCm: string;
-  hipIn: string;
-  activityLevel: ActivityLevel;
-  frontPhoto?: string;
-  sidePhoto?: string;
+  currentAge: string;
+  income: string;
+  savings: string;
+  contributions: string;
+  budget: string;
+  otherIncome: string;
+  retirementAge: string;
+  lifeExpectancy: string;
+  preRetireRate: string;
+  postRetireRate: string;
+  inflation: string;
+  incomeIncrease: string;
+  contributionMode: "$" | "%";
+  budgetMode: "$" | "%";
 }
 
 interface CalculatorData {
   values: CalculatorValues;
-  touched: Partial<Record<keyof CalculatorValues | "height" | "weight" | "neck" | "waist" | "hip", boolean>>;
+  touched: Partial<Record<keyof CalculatorValues, boolean>>;
   result: any | null;
 }
 
-// Helper control for number input with +/- buttons
 const NumberControl = ({ 
   value, 
   onChange, 
   min = 0, 
-  max = 300, 
+  max = 10000000, 
   step = 1, 
   label,
   suffix,
-  displayValue
+  prefix
 }: {
   value: string;
   onChange: (val: string) => void;
@@ -83,16 +82,22 @@ const NumberControl = ({
   step?: number;
   label?: string;
   suffix?: string;
-  displayValue?: React.ReactNode;
+  prefix?: string;
 }) => {
   const handleDec = () => {
     const num = parseFloat(value) || 0;
-    if (num - step >= min) onChange(Math.round((num - step) * 10) / 10 + "");
+    if (num - step >= min) onChange(Math.round((num - step) * 100) / 100 + "");
   };
 
   const handleInc = () => {
     const num = parseFloat(value) || 0;
-    if (num + step <= max) onChange(Math.round((num + step) * 10) / 10 + "");
+    if (num + step <= max) onChange(Math.round((num + step) * 100) / 100 + "");
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/,/g, ''); 
+    const val = raw.replace(/[^0-9.]/g, '');
+    onChange(val);
   };
 
   const btnStyle = {
@@ -123,30 +128,23 @@ const NumberControl = ({
       <button onClick={handleDec} style={btnStyle}><Minus size={16} strokeWidth={3} /></button>
       
       <div style={{flex: 1, textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px"}}>
-         {displayValue ? (
-            <span style={{fontSize: "16px", fontWeight: 700, color: COLORS.textMain}}>
-              {displayValue}
-            </span>
-         ) : (
-           <>
-             <input 
-                type="number" 
-                value={value} 
-                onChange={(e) => onChange(e.target.value)}
-                style={{
-                  width: "40px", 
-                  border: "none", 
-                  background: "transparent", 
-                  textAlign: "center", 
-                  fontSize: "16px", 
-                  fontWeight: 700, 
-                  color: COLORS.textMain,
-                  outline: "none"
-                }}
-             />
-             {suffix && <span style={{fontSize: "14px", color: COLORS.textSecondary, fontWeight: 500}}>{suffix}</span>}
-           </>
-         )}
+          {prefix && <span style={{fontSize: "16px", fontWeight: 700, color: COLORS.textMain}}>{prefix}</span>}
+          <input 
+            type="text" 
+            value={value ? Number(value).toLocaleString() : ""} 
+            onChange={handleChange}
+            style={{
+              width: "100%", 
+              border: "none", 
+              background: "transparent", 
+              textAlign: "center", 
+              fontSize: "16px", 
+              fontWeight: 700, 
+              color: COLORS.textMain,
+              outline: "none"
+            }}
+          />
+          {suffix && <span style={{fontSize: "14px", color: COLORS.textSecondary, fontWeight: 500}}>{suffix}</span>}
       </div>
 
       <button onClick={handleInc} style={btnStyle}><Plus size={16} strokeWidth={3} /></button>
@@ -155,34 +153,26 @@ const NumberControl = ({
 };
 
 const DEFAULT_VALUES: CalculatorValues = {
-  units: "US",
-  gender: "male",
-  age: "25",
-  heightCm: "178",
-  weightKg: "75",
-  heightFt: "5",
-  heightIn: "10",
-  weightLbs: "160",
-  neckCm: "50",
-  waistCm: "96",
-  hipCm: "96",
-  neckIn: "19",
-  waistIn: "37",
-  hipIn: "37",
-  activityLevel: "moderate",
-  frontPhoto: "",
-  sidePhoto: ""
+  currentAge: "35",
+  income: "60000",
+  savings: "30000",
+  contributions: "500",
+  budget: "2561",
+  otherIncome: "0",
+  retirementAge: "67",
+  lifeExpectancy: "95",
+  preRetireRate: "6",
+  postRetireRate: "5",
+  inflation: "3",
+  incomeIncrease: "2",
+  contributionMode: "$",
+  budgetMode: "$"
 };
 
-const CALCULATOR_TYPES: CalculatorType[] = [
-  "BMI Calculator", 
-  "Ideal Weight Calculator", 
-  "Body Fat Calculator", 
-  "Calorie Calculator",
-  "My Photo Health Calculator"
-];
+const CALCULATOR_TYPES = ["Retirement Calculator"] as const;
+type CalculatorType = typeof CALCULATOR_TYPES[number];
 
-const STORAGE_KEY = "HEALTH_CALCULATOR_DATA";
+const STORAGE_KEY = "RETIREMENT_CALCULATOR_DATA";
 const EXPIRATION_DAYS = 30;
 
 const loadSavedData = (): Record<CalculatorType, CalculatorData> => {
@@ -194,25 +184,17 @@ const loadSavedData = (): Record<CalculatorType, CalculatorData> => {
       const daysDiff = (now - timestamp) / (1000 * 60 * 60 * 24);
       
       if (daysDiff < EXPIRATION_DAYS) {
-        // Merge saved data with default structure to handle potential schema changes
         const merged: Record<CalculatorType, CalculatorData> = {
-            "BMI Calculator": { values: { ...DEFAULT_VALUES }, touched: {}, result: null },
-            "Ideal Weight Calculator": { values: { ...DEFAULT_VALUES }, touched: {}, result: null },
-            "Body Fat Calculator": { values: { ...DEFAULT_VALUES }, touched: {}, result: null },
-            "Calorie Calculator": { values: { ...DEFAULT_VALUES }, touched: {}, result: null },
-            "My Photo Health Calculator": { values: { ...DEFAULT_VALUES }, touched: {}, result: null }
+            "Retirement Calculator": { values: { ...DEFAULT_VALUES }, touched: {}, result: null }
         };
 
-        // Only copy over values that exist in our current schema
-        (Object.keys(merged) as CalculatorType[]).forEach(key => {
-            if (data[key]) {
-                merged[key] = {
-                    ...merged[key],
-                    ...data[key],
-                    values: { ...merged[key].values, ...data[key].values }
-                };
-            }
-        });
+        if (data["Retirement Calculator"]) {
+            merged["Retirement Calculator"] = {
+                ...merged["Retirement Calculator"],
+                ...data["Retirement Calculator"],
+                values: { ...merged["Retirement Calculator"].values, ...data["Retirement Calculator"].values }
+            };
+        }
         return merged;
       }
     }
@@ -221,84 +203,41 @@ const loadSavedData = (): Record<CalculatorType, CalculatorData> => {
   }
   
   return {
-    "BMI Calculator": { values: { ...DEFAULT_VALUES }, touched: {}, result: null },
-    "Ideal Weight Calculator": { values: { ...DEFAULT_VALUES }, touched: {}, result: null },
-    "Body Fat Calculator": { values: { ...DEFAULT_VALUES }, touched: {}, result: null },
-    "Calorie Calculator": { values: { ...DEFAULT_VALUES }, touched: {}, result: null },
-    "My Photo Health Calculator": { values: { ...DEFAULT_VALUES }, touched: {}, result: null }
+    "Retirement Calculator": { values: { ...DEFAULT_VALUES }, touched: {}, result: null }
   };
 };
 
-export default function Calculator({ initialData }: { initialData?: any }) {
-  console.log("[BMI Calculator] Component mounting with initialData:", initialData);
-  
-  const [calculatorType, setCalculatorType] = useState<CalculatorType>("BMI Calculator");
+export default function RetirementCalculatorHelloWorld({ initialData }: { initialData?: any }) {
+  const [calculatorType, setCalculatorType] = useState<CalculatorType>("Retirement Calculator");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   
   const [calculators, setCalculators] = useState<Record<CalculatorType, CalculatorData>>(() => {
-    console.log("[BMI Calculator] Initializing state...");
     const loaded = loadSavedData();
-    console.log("[BMI Calculator] Loaded saved data:", loaded);
-    
-    // If initialData provides inputs, override the defaults for BMI calculator
-    if (initialData && (initialData.height_cm || initialData.weight_kg || initialData.summary)) {
+    if (initialData && (initialData.current_age || initialData.annual_pre_tax_income)) {
        try {
-         console.log("[BMI Calculator] Applying initialData to BMI Calculator");
-         const current = loaded["BMI Calculator"];
-         
-         // Calculate derived US units if metric data is provided
-         let heightFt = current.values.heightFt;
-         let heightIn = current.values.heightIn;
-         let weightLbs = current.values.weightLbs;
-         
-         if (initialData.height_cm) {
-           const hCm = Number(initialData.height_cm);
-           if (!isNaN(hCm) && hCm > 0) {
-             const totalInches = hCm / 2.54;
-             heightFt = String(Math.floor(totalInches / 12));
-             heightIn = String(Math.round(totalInches % 12));
-           }
-         }
-         
-         if (initialData.weight_kg) {
-           const wKg = Number(initialData.weight_kg);
-           if (!isNaN(wKg) && wKg > 0) {
-             weightLbs = String(Math.round(wKg * 2.20462));
-           }
-         }
-
-         loaded["BMI Calculator"] = {
+         const current = loaded["Retirement Calculator"];
+         loaded["Retirement Calculator"] = {
            ...current,
            values: {
              ...current.values,
-             heightCm: initialData.height_cm ? String(initialData.height_cm) : current.values.heightCm,
-             weightKg: initialData.weight_kg ? String(initialData.weight_kg) : current.values.weightKg,
-             heightFt,
-             heightIn,
-             weightLbs,
-             age: initialData.age_years ? String(initialData.age_years) : current.values.age,
-             gender: initialData.gender === "female" ? "female" : "male",
-             activityLevel: initialData.activity_level || "moderate"
+             currentAge: initialData.current_age ? String(initialData.current_age) : current.values.currentAge,
+             income: initialData.annual_pre_tax_income ? String(initialData.annual_pre_tax_income) : current.values.income,
+             savings: initialData.current_retirement_savings ? String(initialData.current_retirement_savings) : current.values.savings,
+             contributions: initialData.monthly_contributions ? String(initialData.monthly_contributions) : current.values.contributions,
+             budget: initialData.monthly_budget_in_retirement ? String(initialData.monthly_budget_in_retirement) : current.values.budget,
+             otherIncome: initialData.other_retirement_income ? String(initialData.other_retirement_income) : current.values.otherIncome,
+             retirementAge: initialData.retirement_age ? String(initialData.retirement_age) : current.values.retirementAge,
+             lifeExpectancy: initialData.life_expectancy ? String(initialData.life_expectancy) : current.values.lifeExpectancy,
+             preRetireRate: initialData.pre_retirement_rate_of_return ? String(initialData.pre_retirement_rate_of_return) : current.values.preRetireRate,
+             postRetireRate: initialData.post_retirement_rate_of_return ? String(initialData.post_retirement_rate_of_return) : current.values.postRetireRate,
+             inflation: initialData.inflation_rate ? String(initialData.inflation_rate) : current.values.inflation,
+             incomeIncrease: initialData.annual_income_increase ? String(initialData.annual_income_increase) : current.values.incomeIncrease
            },
-           // Mark these as touched so they aren't overwritten by syncing logic
-           touched: {
-             height: true,
-             weight: true,
-             age: true,
-             gender: true,
-             activity: true
-           },
-           // Pre-populate result if summary exists
-           result: (initialData.summary && typeof initialData.summary.bmi === 'number') 
-             ? initialData.summary.bmi 
-             : current.result
+           touched: {} // Reset touched on fresh load
          };
        } catch (e) {
-         console.error("[BMI Calculator] Failed to apply initialData:", e);
-         // Proceed with loaded defaults
+         console.error("Failed to apply initialData:", e);
        }
-    } else {
-      console.log("[BMI Calculator] No initialData to apply, using defaults");
     }
     return loaded;
   });
@@ -310,29 +249,22 @@ export default function Calculator({ initialData }: { initialData?: any }) {
   const [subscribeStatus, setSubscribeStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [subscribeMessage, setSubscribeMessage] = useState("");
 
-  // Debug logging for render
-  console.log("[BMI Calculator] Render. Type:", calculatorType, "ShowModal:", showSubscribeModal);
-
   // Feedback State
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackStatus, setFeedbackStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
 
   useEffect(() => {
-    console.log("[BMI Calculator] Turnstile Effect triggered. Show:", showSubscribeModal);
     if (showSubscribeModal && (window as any).turnstile) {
-      console.log("[BMI Calculator] Rendering Turnstile...");
       setTimeout(() => {
           try {
             (window as any).turnstile.render('#turnstile-widget', {
               sitekey: (window as any).TURNSTILE_SITE_KEY,
               callback: function(token: string) {
-                console.log("[BMI Calculator] Turnstile success");
                 setTurnstileToken(token);
               },
             });
           } catch (e) {
-            console.error("[BMI Calculator] Turnstile render error:", e);
             // Turnstile might already be rendered
           }
       }, 100);
@@ -353,14 +285,13 @@ export default function Calculator({ initialData }: { initialData?: any }) {
 
     setSubscribeStatus("loading");
     try {
-        // In a real app, the base URL might need to be dynamic if not served from root
-        const response = await fetch("/subscribe", {
+        const response = await fetch("/api/subscribe", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 email,
-                settlementId: "health-news",
-                settlementName: "Health Calculator News",
+                settlementId: "retirement-news",
+                settlementName: "Retirement Calculator News",
                 turnstileToken
             })
         });
@@ -418,7 +349,6 @@ export default function Calculator({ initialData }: { initialData?: any }) {
     }
   };
 
-  // Persist data on change
   useEffect(() => {
     const dataToSave = {
         data: calculators,
@@ -429,19 +359,14 @@ export default function Calculator({ initialData }: { initialData?: any }) {
 
   const currentCalc = calculators[calculatorType];
   const { 
-    units, gender, age, activityLevel,
-    heightCm, heightFt, heightIn,
-    weightKg, weightLbs,
-    neckCm, neckIn, waistCm, waistIn, hipCm, hipIn,
-    frontPhoto, sidePhoto
+    currentAge, income, savings, contributions, budget, otherIncome,
+    retirementAge, lifeExpectancy, preRetireRate, postRetireRate, inflation, incomeIncrease,
+    contributionMode, budgetMode
   } = currentCalc.values;
 
-  const updateVal = (field: keyof CalculatorValues, value: any, logicalGroup?: string) => {
+  const updateVal = (field: keyof CalculatorValues, value: any) => {
     setCalculators(prev => {
       const next = { ...prev };
-      const group = logicalGroup || field;
-
-      // 1. Update current calculator
       next[calculatorType] = {
         ...next[calculatorType],
         values: {
@@ -450,26 +375,9 @@ export default function Calculator({ initialData }: { initialData?: any }) {
         },
         touched: {
           ...next[calculatorType].touched,
-          [group]: true
+          [field]: true
         }
       };
-
-      // 2. Update defaults on other UNTOUCHED calculators
-      CALCULATOR_TYPES.forEach(type => {
-        if (type !== calculatorType) {
-          const isTouched = next[type].touched[group as keyof typeof next[typeof type]["touched"]];
-          if (!isTouched) {
-            next[type] = {
-              ...next[type],
-              values: {
-                ...next[type].values,
-                [field]: value
-              }
-            };
-          }
-        }
-      });
-
       return next;
     });
   };
@@ -484,561 +392,261 @@ export default function Calculator({ initialData }: { initialData?: any }) {
     }));
   };
 
-  const calculate = () => {
-    if (calculatorType === "BMI Calculator") {
-      calculateBMI();
-    } else if (calculatorType === "Ideal Weight Calculator") {
-      calculateIdealWeight();
-    } else if (calculatorType === "Body Fat Calculator") {
-      calculateBodyFat();
-    } else if (calculatorType === "Calorie Calculator") {
-      calculateCalories();
-    } else if (calculatorType === "My Photo Health Calculator") {
-      calculatePhotoHealth();
-    }
-  };
-
-  const calculateBMI = () => {
-    let hM = 0;
-    let wKg = 0;
-
-    if (units === "Metric") {
-      hM = parseFloat(heightCm) / 100;
-      wKg = parseFloat(weightKg);
-    } else {
-      const totalInches = (parseFloat(heightFt || "0") * 12) + parseFloat(heightIn || "0");
-      hM = totalInches * 0.0254;
-      wKg = parseFloat(weightLbs) * 0.453592;
-    }
-
-    if (hM > 0 && wKg > 0) {
-      const bmiVal = wKg / (hM * hM);
-      updateResult(parseFloat(bmiVal.toFixed(1)));
-    } else {
-      updateResult(null);
-    }
-  };
-
-  const calculateIdealWeight = () => {
-    let hInches = 0;
-    if (units === "Metric") {
-      hInches = parseFloat(heightCm) / 2.54;
-    } else {
-      hInches = (parseFloat(heightFt || "0") * 12) + parseFloat(heightIn || "0");
-    }
-
-    if (!hInches || hInches < 0) {
-      updateResult(null);
-      return;
-    }
-
-    const inchesOver60 = Math.max(0, hInches - 60);
+  const calculateRetirement = () => {
+    const currentAgeNum = parseFloat(currentAge);
+    const retirementAgeNum = parseFloat(retirementAge);
+    const lifeExpectancyNum = parseFloat(lifeExpectancy);
+    const incomeNum = parseFloat(income);
+    let savingsNum = parseFloat(savings);
     
-    const robinson = gender === 'male' 
-      ? 52 + 1.9 * inchesOver60 
-      : 49 + 1.7 * inchesOver60;
-      
-    const miller = gender === 'male'
-      ? 56.2 + 1.41 * inchesOver60
-      : 53.1 + 1.36 * inchesOver60;
-      
-    const devine = gender === 'male'
-      ? 50.0 + 2.3 * inchesOver60
-      : 45.5 + 2.3 * inchesOver60;
-      
-    const hamwi = gender === 'male'
-      ? 48.0 + 2.7 * inchesOver60
-      : 45.5 + 2.2 * inchesOver60;
-
-    const hM = hInches * 0.0254;
-    const minWeightKg = 18.5 * (hM * hM);
-    const maxWeightKg = 25 * (hM * hM);
-
-    const format = (kg: number) => {
-      if (units === "Metric") return `${kg.toFixed(1)} kg`;
-      return `${(kg * 2.20462).toFixed(1)} lbs`;
-    };
-
-    updateResult({
-      "Robinson (1983)": format(robinson),
-      "Miller (1983)": format(miller),
-      "Devine (1974)": format(devine),
-      "Hamwi (1964)": format(hamwi),
-      "Healthy BMI Range": units === "Metric" 
-        ? `${minWeightKg.toFixed(1)} - ${maxWeightKg.toFixed(1)} kg`
-        : `${(minWeightKg * 2.20462).toFixed(1)} - ${(maxWeightKg * 2.20462).toFixed(1)} lbs`
-    });
-  };
-
-  const calculateBodyFat = () => {
-    let hCm = 0;
-    let wKg = 0;
-    let nCm = 0;
-    let waCm = 0;
-    let hipCmVal = 0;
-
-    if (units === "Metric") {
-      hCm = parseFloat(heightCm);
-      wKg = parseFloat(weightKg);
-      nCm = parseFloat(neckCm);
-      waCm = parseFloat(waistCm);
-      hipCmVal = parseFloat(hipCm);
-    } else {
-      const totalInches = (parseFloat(heightFt || "0") * 12) + parseFloat(heightIn || "0");
-      hCm = totalInches * 2.54;
-      wKg = parseFloat(weightLbs) * 0.453592;
-      nCm = parseFloat(neckIn) * 2.54;
-      waCm = parseFloat(waistIn) * 2.54;
-      hipCmVal = parseFloat(hipIn) * 2.54;
-    }
-
-    if (!hCm || !wKg || !nCm || !waCm || (gender === 'female' && !hipCmVal)) {
-      updateResult(null);
+    if (isNaN(currentAgeNum) || isNaN(retirementAgeNum) || isNaN(incomeNum) || isNaN(savingsNum)) {
       return;
     }
 
-    let bfPercent = 0;
-    if (gender === 'male') {
-      const density = 1.0324 - 0.19077 * Math.log10(waCm - nCm) + 0.15456 * Math.log10(hCm);
-      bfPercent = (495 / density) - 450;
-    } else {
-      const density = 1.29579 - 0.35004 * Math.log10(waCm + hipCmVal - nCm) + 0.22100 * Math.log10(hCm);
-      bfPercent = (495 / density) - 450;
-    }
-
-    bfPercent = Math.max(2, Math.min(60, bfPercent));
-
-    const hM = hCm / 100;
-    const bmi = wKg / (hM * hM);
-    const bmiBfPercent = (1.20 * bmi) + (0.23 * parseFloat(age)) - (10.8 * (gender === 'male' ? 1 : 0)) - 5.4;
-
-    let category = "";
-    if (gender === 'male') {
-      if (bfPercent < 6) category = "Essential";
-      else if (bfPercent < 14) category = "Athletes";
-      else if (bfPercent < 18) category = "Fitness";
-      else if (bfPercent < 25) category = "Average";
-      else category = "Obese";
-    } else {
-      if (bfPercent < 14) category = "Essential";
-      else if (bfPercent < 21) category = "Athletes";
-      else if (bfPercent < 25) category = "Fitness";
-      else if (bfPercent < 32) category = "Average";
-      else category = "Obese";
-    }
-
-    const fatMass = wKg * (bfPercent / 100);
-    const leanMass = wKg - fatMass;
-
-    const idealBf = gender === 'male' 
-        ? 8.0 + (0.1 * parseFloat(age))
-        : 15.0 + (0.1 * parseFloat(age));
+    // Advanced Calculation Logic
+    const preRate = parseFloat(preRetireRate) / 100;
+    const postRate = parseFloat(postRetireRate) / 100;
+    const infl = parseFloat(inflation) / 100;
+    const incIncrease = parseFloat(incomeIncrease) / 100;
     
-    const targetWeight = leanMass / (1 - (idealBf/100));
-    const weightToLose = wKg - targetWeight;
-
-    const formatWeight = (kg: number) => {
-      if (units === "Metric") return `${kg.toFixed(1)} kg`;
-      return `${(kg * 2.20462).toFixed(1)} lbs`;
-    };
-
-    updateResult({
-      percent: bfPercent.toFixed(1),
-      category,
-      fatMass: formatWeight(fatMass),
-      leanMass: formatWeight(leanMass),
-      idealBf: idealBf.toFixed(1),
-      toLose: weightToLose > 0 ? formatWeight(weightToLose) : "0.0 kg",
-      bmiMethod: bmiBfPercent.toFixed(1)
-    });
-  };
-
-  const calculateCalories = () => {
-    let hCm = 0;
-    let wKg = 0;
-
-    if (units === "Metric") {
-      hCm = parseFloat(heightCm);
-      wKg = parseFloat(weightKg);
-    } else {
-      const totalInches = (parseFloat(heightFt || "0") * 12) + parseFloat(heightIn || "0");
-      hCm = totalInches * 2.54;
-      wKg = parseFloat(weightLbs) * 0.453592;
+    // 1. Calculate "What you'll need" at Retirement Age
+    const yearsPre = retirementAgeNum - currentAgeNum;
+    const yearsPost = lifeExpectancyNum - retirementAgeNum;
+    
+    // Monthly shortfall in today's dollars
+    const monthlyShortfallToday = Math.max(0, parseFloat(budget) - parseFloat(otherIncome));
+    const annualShortfallToday = monthlyShortfallToday * 12;
+    
+    // Annual shortfall at retirement (inflated)
+    const annualShortfallAtRetire = annualShortfallToday * Math.pow(1 + infl, yearsPre);
+    
+    // Need: Balance that can sustain inflated withdrawals until death
+    let neededAtRetirement = 0;
+    // Backwards simulation for NEED
+    let balance = 0;
+    for (let i = 0; i < yearsPost; i++) {
+        const payout = annualShortfallAtRetire * Math.pow(1 + infl, yearsPost - 1 - i);
+        balance = (balance + payout) / (1 + postRate);
     }
+    neededAtRetirement = balance;
 
-    if (!hCm || !wKg) {
-      updateResult(null);
-      return;
+    // 2. Required Contribution Calculation
+    const fvSavings = savingsNum * Math.pow(1 + preRate, yearsPre);
+    const gap = neededAtRetirement - fvSavings;
+    
+    let initialAnnualContribNeeded = 0;
+    let accumFactor = 0;
+    for (let k = 0; k < yearsPre; k++) {
+        accumFactor += Math.pow(1 + incIncrease, k) * Math.pow(1 + preRate, yearsPre - 1 - k);
     }
-
-    let bmr = (10 * wKg) + (6.25 * hCm) - (5 * parseFloat(age));
-    if (gender === 'male') bmr += 5;
-    else bmr -= 161;
-
-    const multipliers: Record<ActivityLevel, number> = {
-      sedentary: 1.2,
-      light: 1.375,
-      moderate: 1.465,
-      active: 1.55,
-      very_active: 1.725,
-      extra_active: 1.9
-    };
-
-    const tdee = Math.round(bmr * multipliers[activityLevel]);
-
-    updateResult({
-      maintain: tdee,
-      mildLoss: Math.round(tdee * 0.90),
-      weightLoss: Math.round(tdee * 0.80),
-      extremeLoss: Math.round(tdee * 0.61),
-      mildGain: Math.round(tdee * 1.10),
-      weightGain: Math.round(tdee * 1.20),
-      extremeGain: Math.round(tdee * 1.39)
-    });
-  };
-
-  const analyzeImage = (imageUrl: string): Promise<{width: number, height: number, bodyRatio: number, centerMass: number}> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          resolve({width: 0, height: 0, bodyRatio: 0.5, centerMass: 0.5});
-          return;
-        }
+    if (accumFactor > 0) {
+        initialAnnualContribNeeded = gap / accumFactor;
+    }
+    
+    // 3. Generate Graph Data
+    const graphData = [];
+    
+    let simCurrent = savingsNum;
+    let simIdeal = savingsNum;
+    
+    let simSalary = incomeNum;
+    let simCurrentContrib = parseFloat(contributions);
+    if (contributionMode === "%") simCurrentContrib = (simSalary / 12) * (simCurrentContrib / 100);
+    simCurrentContrib *= 12; // Annual
+    
+    let simIdealContrib = Math.max(0, initialAnnualContribNeeded);
+    
+    let runOutAgeCurrent = null;
+    let runOutAgeIdeal = null;
+    
+    const totalYears = lifeExpectancyNum - currentAgeNum;
+    
+    for (let yr = 0; yr <= totalYears; yr++) {
+        const age = currentAgeNum + yr;
+        const isRetired = age >= retirementAgeNum;
         
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-        
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-        
-        // Find body region by analyzing pixel density and edges
-        let bodyPixels = 0;
-        let totalPixels = 0;
-        let centerX = 0;
-        let centerY = 0;
-        let minX = canvas.width;
-        let maxX = 0;
-        let minY = canvas.height;
-        let maxY = 0;
-        
-        // Sample pixels (every 4th pixel for performance)
-        for (let i = 0; i < data.length; i += 16) {
-          const x = (i / 4) % canvas.width;
-          const y = Math.floor((i / 4) / canvas.width);
-          
-          const r = data[i];
-          const g = data[i + 1];
-          const b = data[i + 2];
-          const a = data[i + 3];
-          
-          // Skip transparent pixels
-          if (a < 128) continue;
-          
-          totalPixels++;
-
-          // Detect skin tones and body-like colors (not background)
-          const brightness = (r + g + b) / 3;
-          const isLikelyBody = brightness > 50 && brightness < 240 && 
-                              (r > 80 || g > 80 || b > 80);
-          
-          if (isLikelyBody) {
-            bodyPixels++;
-            centerX += x;
-            centerY += y;
-            minX = Math.min(minX, x);
-            maxX = Math.max(maxX, x);
-            minY = Math.min(minY, y);
-            maxY = Math.max(maxY, y);
-          }
-        }
-        
-        const bodyWidth = maxX - minX;
-        const bodyHeight = maxY - minY;
-        const bodyRatio = bodyHeight > 0 ? bodyWidth / bodyHeight : 0.5;
-        const centerMass = bodyPixels > 0 ? centerY / bodyPixels / canvas.height : 0.5;
-        
-        resolve({
-          width: bodyWidth,
-          height: bodyHeight,
-          bodyRatio: bodyRatio,
-          centerMass: centerMass
+        graphData.push({
+            age,
+            current: Math.round(simCurrent),
+            recommended: Math.round(simIdeal)
         });
-      };
-      img.onerror = () => {
-        resolve({width: 0, height: 0, bodyRatio: 0.5, centerMass: 0.5});
-      };
-      img.src = imageUrl;
-    });
-  };
-
-  const calculatePhotoHealth = async () => {
-    if (!frontPhoto && !sidePhoto) {
-      alert("Please upload at least one photo (front or side) to analyze.");
-      return;
-    }
-    
-    setIsAnalyzing(true);
-    
-    try {
-      let frontAnalysis = {width: 0, height: 0, bodyRatio: 0.5, centerMass: 0.5};
-      let sideAnalysis = {width: 0, height: 0, bodyRatio: 0.5, centerMass: 0.5};
-      
-      if (frontPhoto) {
-        frontAnalysis = await analyzeImage(frontPhoto);
-      }
-      if (sidePhoto) {
-        sideAnalysis = await analyzeImage(sidePhoto);
-      }
-      
-      // Combine analyses
-      const avgBodyRatio = (frontAnalysis.bodyRatio + sideAnalysis.bodyRatio) / 2;
-      const avgCenterMass = (frontAnalysis.centerMass + sideAnalysis.centerMass) / 2;
-      
-      // Estimate BMI based on body proportions
-      // Wider body ratio typically indicates higher BMI
-      // Lower center mass (more weight in lower body) can indicate different body types
-      let bmiEstimate = 18.5; // Start with minimum healthy BMI
-      
-      // Body ratio analysis: typical healthy ratio is around 0.35-0.45
-      // Higher ratio (wider relative to height) suggests higher BMI
-      if (avgBodyRatio > 0.5) {
-        bmiEstimate = 28 + (avgBodyRatio - 0.5) * 15; // Overweight to obese range
-      } else if (avgBodyRatio > 0.4) {
-        bmiEstimate = 22 + (avgBodyRatio - 0.4) * 60; // Normal to overweight
-      } else if (avgBodyRatio > 0.3) {
-        bmiEstimate = 18.5 + (avgBodyRatio - 0.3) * 35; // Underweight to normal
-      } else {
-        bmiEstimate = 16 + avgBodyRatio * 25; // Very underweight
-      }
-      
-      // Adjust based on center of mass (posture/body composition)
-      if (avgCenterMass > 0.55) {
-        bmiEstimate += 1.5; // More weight in lower body
-      } else if (avgCenterMass < 0.45) {
-        bmiEstimate -= 1.0; // More weight in upper body
-      }
-      
-      // Clamp to reasonable range
-      bmiEstimate = Math.max(15, Math.min(35, bmiEstimate));
-      
-      // Determine fitness level
-      let fitness = "";
-      let tips: string[] = [];
-      
-      if (bmiEstimate < 18.5) {
-        fitness = "Visual assessment suggests you may be underweight. Consider consulting a healthcare provider.";
-        tips = [
-          "Focus on nutrient-dense foods to support healthy weight gain.",
-          "Incorporate strength training to build muscle mass.",
-          "Consider working with a nutritionist to develop a healthy meal plan."
-        ];
-      } else if (bmiEstimate >= 18.5 && bmiEstimate < 25) {
-        fitness = "Your body proportions appear to be within a healthy range.";
-        if (avgBodyRatio < 0.38) {
-          fitness += " You appear to have a lean, athletic build.";
-          tips = [
-            "Maintain your current fitness routine.",
-            "Continue focusing on balanced nutrition.",
-            "Consider adding variety to prevent plateaus."
-          ];
+        
+        if (isRetired) {
+            // Drawdown phase
+            const payout = annualShortfallAtRetire * Math.pow(1 + infl, age - retirementAgeNum);
+            
+            // Current Path
+            if (simCurrent > 0) {
+                simCurrent = simCurrent * (1 + postRate) - payout;
+                if (simCurrent < 0) {
+                    simCurrent = 0;
+                    runOutAgeCurrent = age;
+                }
+            }
+            
+            // Ideal Path
+            if (simIdeal > 0) {
+                simIdeal = simIdeal * (1 + postRate) - payout;
+                if (simIdeal < 0) {
+                    simIdeal = 0;
+                    runOutAgeIdeal = age;
+                }
+            }
+            
         } else {
-          tips = [
-            "Maintain a balanced diet with regular exercise.",
-            "Focus on both cardiovascular and strength training.",
-            "Stay hydrated and get adequate sleep for recovery."
-          ];
+            // Accumulation phase
+            simCurrent = simCurrent * (1 + preRate) + simCurrentContrib;
+            simIdeal = simIdeal * (1 + preRate) + simIdealContrib;
+            
+            simSalary *= (1 + incIncrease);
+            
+            if (contributionMode === "%") {
+                simCurrentContrib = (simSalary) * (parseFloat(contributions) / 100);
+            }
+            simIdealContrib *= (1 + incIncrease);
         }
-      } else if (bmiEstimate >= 25 && bmiEstimate < 30) {
-        fitness = "Visual analysis suggests you may be slightly above ideal weight range.";
-        tips = [
-          "Consider a moderate calorie deficit (300-500 calories/day).",
-          "Increase daily activity with 150+ minutes of moderate exercise per week.",
-          "Focus on whole foods and reduce processed food intake.",
-          "Strength training can help build muscle while losing fat."
-        ];
-      } else {
-        fitness = "Visual assessment indicates you may benefit from a structured weight management plan.";
-        tips = [
-          "Consult with a healthcare provider before starting any weight loss program.",
-          "Aim for gradual weight loss (1-2 lbs per week).",
-          "Combine diet modifications with regular physical activity.",
-          "Consider working with a registered dietitian for personalized guidance."
-        ];
-      }
-      
-      // Add posture/body composition tips based on center mass
-      if (avgCenterMass > 0.55) {
-        tips.push("Your body composition suggests focusing on upper body strength training.");
-      } else if (avgCenterMass < 0.45) {
-        tips.push("Consider lower body and core strengthening exercises.");
-      }
-      
-      // Add general tips
-      if (frontPhoto && sidePhoto) {
-        tips.push("Having both front and side views provides a more comprehensive assessment.");
-      }
-      
-      updateResult({
-        bmiEstimate: bmiEstimate.toFixed(1),
-        fitness: fitness,
-        tips: tips
-      });
-    } catch (error) {
-      console.error("Error analyzing photos:", error);
-      updateResult({
-        bmiEstimate: "N/A",
-        fitness: "Unable to analyze photos. Please ensure images are clear and well-lit.",
-        tips: [
-          "Make sure photos are taken in good lighting.",
-          "Wear form-fitting clothing for better analysis.",
-          "Stand straight with arms at your sides."
-        ]
-      });
-    } finally {
-      setIsAnalyzing(false);
     }
-  };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, field: "frontPhoto" | "sidePhoto") => {
-    if (e.target.files && e.target.files[0]) {
-      const url = URL.createObjectURL(e.target.files[0]);
-      updateVal(field, url);
-    }
-  };
+    const whatYouHave = graphData.find(d => d.age === retirementAgeNum)?.current || 0;
+    const whatYouNeed = neededAtRetirement;
 
-  const SUPPLEMENTS = [
-    {
-        id: 1,
-        title: "Whey Protein\nIsolate",
-        price: "$29.99",
-        image: "/assets/whey-protein.jpg",
-        link: "https://www.amazon.com/Optimum-Nutrition-Standard-Protein-Isolate/dp/B000QSNYGI/"
-    },
-    {
-        id: 2,
-        title: "Multivitamin\nComplex",
-        price: "$19.95",
-        image: "/assets/multivitamin.jpg",
-        link: "https://www.amazon.com/Amazon-Brand-Solimo-Multivitamin-Gummies/dp/B07JGW2JKF/"
-    },
-    {
-        id: 3,
-        title: "Omega-3\nFish Oil",
-        price: "$24.50",
-        image: "/assets/fish-oil.jpg",
-        link: "https://www.amazon.com/Nature-Made-Strength-Softgels-count/dp/B004U3Y9FM/"
-    }
-  ];
-
-  const clearInputs = () => {
-    updateResult(null);
-    setCalculators(prev => {
-        const next = { ...prev };
-        // Reset current calculator to defaults
-        next[calculatorType] = {
-            values: { ...DEFAULT_VALUES },
-            touched: {},
-            result: null
-        };
-        return next;
+    updateResult({
+        have: Math.round(whatYouHave),
+        need: Math.round(whatYouNeed),
+        graphData,
+        runOutAgeCurrent: runOutAgeCurrent || lifeExpectancyNum,
+        runOutAgeIdeal: runOutAgeIdeal || lifeExpectancyNum,
+        monthlyContribNeeded: Math.round(initialAnnualContribNeeded / 12),
+        currentMonthlyContrib: Math.round(simCurrentContrib / 12)
     });
   };
 
-  const totalInches = (parseInt(heightFt) || 0) * 12 + (parseInt(heightIn) || 0);
-  const handleTotalInchesChange = (val: string) => {
-    const total = parseInt(val);
-    if (!isNaN(total)) {
-      const ft = Math.floor(total / 12);
-      const inches = total % 12;
+  const calculate = () => {
+      calculateRetirement();
+  };
+
+  useEffect(() => {
+    calculate();
+  }, [currentCalc.values]);
+
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [resultView, setResultView] = useState<"graph" | "summary">("graph");
+
+  const toggleMode = (field: "contributionMode" | "budgetMode") => {
+    const current = currentCalc.values[field];
+    updateVal(field, current === "$" ? "%" : "$");
+  };
+
+  // Smart Defaults: Auto-calculate budget based on income if budget hasn't been touched
+  useEffect(() => {
+    const incomeNum = parseFloat(income);
+    if (!isNaN(incomeNum) && !currentCalc.touched.budget) {
+      // 75% replacement rate rule of thumb
+      const suggestedAnnualBudget = incomeNum * 0.75;
+      const suggestedMonthlyBudget = Math.round(suggestedAnnualBudget / 12);
       
-      // Atomic update for both
       setCalculators(prev => {
         const next = { ...prev };
-        const group = "height";
-        
-        // Update current
-        next[calculatorType].values.heightFt = ft.toString();
-        next[calculatorType].values.heightIn = inches.toString();
-        next[calculatorType].touched.height = true;
-
-        // Update others
-        CALCULATOR_TYPES.forEach(type => {
-            if (type !== calculatorType && !next[type].touched.height) {
-                next[type].values.heightFt = ft.toString();
-                next[type].values.heightIn = inches.toString();
-            }
-        });
+        next[calculatorType] = {
+          ...next[calculatorType],
+          values: {
+            ...next[calculatorType].values,
+            budget: String(suggestedMonthlyBudget)
+          }
+          // Do NOT mark as touched so it continues to update until user manually overrides
+        };
         return next;
       });
     }
+  }, [income, currentCalc.touched.budget, calculatorType]);
+
+  const handleInvestmentStrategy = (strategy: "conservative" | "moderate" | "aggressive") => {
+    let pre = "6";
+    let post = "5";
+    
+    if (strategy === "conservative") {
+        pre = "4";
+        post = "3";
+    } else if (strategy === "aggressive") {
+        pre = "9";
+        post = "7";
+    } else {
+        // Moderate
+        pre = "7";
+        post = "5";
+    }
+
+    setCalculators(prev => {
+        const next = { ...prev };
+        next[calculatorType] = {
+          ...next[calculatorType],
+          values: {
+            ...next[calculatorType].values,
+            preRetireRate: pre,
+            postRetireRate: post
+          },
+          touched: {
+            ...next[calculatorType].touched,
+            preRetireRate: true,
+            postRetireRate: true
+          }
+        };
+        return next;
+      });
   };
 
-  const isBMI = calculatorType === "BMI Calculator";
-  const isIdeal = calculatorType === "Ideal Weight Calculator";
-  const isBF = calculatorType === "Body Fat Calculator";
-  const isCalorie = calculatorType === "Calorie Calculator";
-  const isPhoto = calculatorType === "My Photo Health Calculator";
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [quizStep, setQuizStep] = useState(0);
+  const [quizAnswers, setQuizAnswers] = useState({
+    kids: 0,
+    college: "no", // no, partial, full
+    travel: "moderate", // low, moderate, high
+  });
 
-  // Extract results for rendering
-  const calculatedBmi = isBMI ? currentCalc.result : null;
-  const idealWeights = isIdeal ? currentCalc.result : null;
-  const bodyFatResult = isBF ? currentCalc.result : null;
-  const calorieResult = isCalorie ? currentCalc.result : null;
-  const photoResult = isPhoto ? currentCalc.result : null;
+  const handleQuizComplete = () => {
+    // 1. Adjust Monthly Contributions based on College
+    // Assumption: College costs reduce ability to save for retirement now (if kids are young) 
+    // or are a large expense. Let's assume it reduces monthly contributions availability.
+    let currentContrib = parseFloat(contributions);
+    if (quizAnswers.college === "full") {
+        // Reduce savings by $500 per kid
+        currentContrib = Math.max(0, currentContrib - (quizAnswers.kids * 500));
+    } else if (quizAnswers.college === "partial") {
+        // Reduce savings by $200 per kid
+        currentContrib = Math.max(0, currentContrib - (quizAnswers.kids * 200));
+    }
+    updateVal("contributions", String(currentContrib));
 
-  // BMI Visualization Data
-  let bmiCategory = "";
-  let bmiColor = COLORS.primary;
-  const BMI_SEGMENTS = [
-    { label: "Underweight", min: 14, max: 18.5, color: COLORS.blue, range: "< 18.5" },
-    { label: "Normal", min: 18.5, max: 25, color: COLORS.primary, range: "18.5 – 24.9" },
-    { label: "Overweight", min: 25, max: 30, color: COLORS.yellow, range: "25 – 29.9" },
-    { label: "Obesity", min: 30, max: 40, color: COLORS.red, range: "30 +" }
-  ];
-  const BMI_MIN = BMI_SEGMENTS[0].min;
-  const BMI_MAX = BMI_SEGMENTS[BMI_SEGMENTS.length - 1].max;
-  const clampPercent = (val: number) => Math.max(0, Math.min(100, val));
-  const bmiPointerPercent =
-    isBMI && calculatedBmi !== null
-      ? clampPercent(((calculatedBmi - BMI_MIN) / (BMI_MAX - BMI_MIN)) * 100)
-      : 0;
-  if (isBMI && calculatedBmi !== null) {
-    if (calculatedBmi < 18.5) {
-      bmiCategory = "Underweight";
-      bmiColor = COLORS.blue;
-    } else if (calculatedBmi >= 18.5 && calculatedBmi < 25) {
-      bmiCategory = "Normal";
-      bmiColor = COLORS.primary;
-    } else if (calculatedBmi >= 25 && calculatedBmi < 30) {
-      bmiCategory = "Overweight";
-      bmiColor = COLORS.yellow;
-    } else {
-      bmiCategory = "Obesity";
-      bmiColor = COLORS.red;
-    }
-  }
+    // 2. Adjust Retirement Budget based on Travel
+    let baseBudget = parseFloat(budget);
+    // Reset base if we want to purely calculate from scratch, but let's just adjust current
+    // If user hasn't touched budget, it might be the auto-calculated one.
+    
+    let travelCost = 0;
+    if (quizAnswers.travel === "low") travelCost = 200;
+    else if (quizAnswers.travel === "moderate") travelCost = 800;
+    else if (quizAnswers.travel === "high") travelCost = 2500;
+    
+    // If they have kids, maybe they visit them? +$200/mo
+    if (quizAnswers.kids > 0) travelCost += 200;
 
-  const getIdealWeightRangeText = () => {
-    let hInches = 0;
-    if (units === "Metric") {
-      hInches = parseFloat(heightCm) / 2.54;
-    } else {
-      hInches = (parseFloat(heightFt || "0") * 12) + parseFloat(heightIn || "0");
-    }
-    if (!hInches) return null;
-    const hM = hInches * 0.0254;
-    const minWeightKg = 18.5 * (hM * hM);
-    const maxWeightKg = 25 * (hM * hM);
-    if (units === "Metric") {
-      return `${minWeightKg.toFixed(1)} - ${maxWeightKg.toFixed(1)} kg`;
-    } else {
-      return `${(minWeightKg * 2.20462).toFixed(1)} - ${(maxWeightKg * 2.20462).toFixed(1)} lbs`;
-    }
+    // We add this to the "Smart Estimate" baseline if budget wasn't manually set, 
+    // OR we just add it to the current value. Let's add to current for simplicity.
+    const newBudget = Math.round(baseBudget + travelCost);
+    updateVal("budget", String(newBudget));
+
+    setShowQuiz(false);
+    setQuizStep(0);
+  };
+
+  // "Smart Estimate" for budget
+  const applySmartBudget = () => {
+      const incomeNum = parseFloat(income);
+      if (!isNaN(incomeNum)) {
+          // 75% replacement rate
+          const suggested = Math.round((incomeNum * 0.75) / 12);
+          updateVal("budget", String(suggested));
+      }
   };
 
   const styles = {
@@ -1064,31 +672,6 @@ export default function Calculator({ initialData }: { initialData?: any }) {
       marginBottom: "20px",
       marginTop: "-5px"
     },
-    dropdownWrapper: {
-      position: "relative" as const,
-      marginBottom: "20px"
-    },
-    dropdownSelect: {
-      width: "100%",
-      padding: "12px",
-      borderRadius: "12px",
-      backgroundColor: "white",
-      border: `1px solid ${COLORS.orangeLight}`,
-      fontSize: "16px",
-      fontWeight: 600,
-      color: COLORS.textMain,
-      appearance: "none" as const,
-      cursor: "pointer",
-      boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
-    },
-    dropdownIcon: {
-      position: "absolute" as const,
-      right: "12px",
-      top: "50%",
-      transform: "translateY(-50%)",
-      pointerEvents: "none" as const,
-      color: COLORS.orange
-    },
     card: {
       backgroundColor: COLORS.card,
       borderRadius: "24px",
@@ -1096,28 +679,9 @@ export default function Calculator({ initialData }: { initialData?: any }) {
       boxShadow: "0 10px 40px -10px rgba(0,0,0,0.08)",
       marginBottom: "20px"
     },
-    tabs: {
-      display: "flex",
-      marginBottom: "20px",
-      backgroundColor: "#F3F4F6",
-      borderRadius: "12px",
-      padding: "4px"
-    },
-    tab: (isActive: boolean) => ({
-      flex: 1,
-      padding: "10px 20px",
-      cursor: "pointer",
-      fontWeight: 600,
-      color: isActive ? COLORS.textMain : COLORS.textSecondary,
-      backgroundColor: isActive ? COLORS.card : "transparent",
-      borderRadius: "8px",
-      textAlign: "center" as const,
-      transition: "all 0.2s",
-      boxShadow: isActive ? "0 2px 8px rgba(0,0,0,0.05)" : "none"
-    }),
     row: {
       display: "flex",
-      alignItems: "center",
+      alignItems: "flex-start",
       marginBottom: "20px",
       gap: "16px"
     },
@@ -1136,25 +700,18 @@ export default function Calculator({ initialData }: { initialData?: any }) {
       display: "flex",
       gap: "4px",
       backgroundColor: COLORS.inputBg,
-      borderRadius: "12px",
-      padding: "4px",
-      height: "44px",
-      alignItems: "center",
-      boxSizing: "border-box" as const
+      borderRadius: "8px",
+      padding: "2px",
+      alignItems: "center"
     },
     toggleBtn: (isActive: boolean) => ({
-      flex: 1,
-      height: "100%",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: "8px",
+      padding: "4px 12px",
+      borderRadius: "6px",
       cursor: "pointer",
-      fontSize: "14px",
       fontWeight: 600,
-      color: isActive ? COLORS.textMain : COLORS.textSecondary,
-      backgroundColor: isActive ? "white" : "transparent",
-      boxShadow: isActive ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
+      fontSize: "14px",
+      color: isActive ? "white" : COLORS.textSecondary,
+      backgroundColor: isActive ? COLORS.blue : "transparent",
       transition: "all 0.2s"
     }),
     buttonRow: {
@@ -1178,19 +735,6 @@ export default function Calculator({ initialData }: { initialData?: any }) {
       gap: "8px",
       boxShadow: "0 4px 12px rgba(86, 197, 150, 0.2)"
     },
-    clearButton: {
-      backgroundColor: "transparent",
-      color: COLORS.textSecondary,
-      border: "1px solid #E5E7EB",
-      padding: "14px 24px",
-      borderRadius: "16px",
-      fontSize: "16px",
-      fontWeight: 600,
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center"
-    },
     resultCard: {
       backgroundColor: COLORS.card,
       borderRadius: "24px",
@@ -1211,100 +755,6 @@ export default function Calculator({ initialData }: { initialData?: any }) {
         fontWeight: 700,
         color: COLORS.textMain
     },
-    resultContentRow: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "16px", // Reduced gap
-      marginBottom: "30px"
-    },
-    bmiValueContainer: {
-      display: "flex",
-      flexDirection: "column" as const,
-      alignItems: "center", // Centered items
-      minWidth: "80px", // Reduced minWidth
-      textAlign: "center" as const
-    },
-    bmiValue: {
-      fontSize: "48px",
-      fontWeight: 800,
-      color: COLORS.textMain,
-      lineHeight: "1",
-      marginBottom: "4px"
-    },
-    bmiCat: {
-      color: bmiColor,
-      fontWeight: 700,
-      fontSize: "18px",
-      marginTop: "0"
-    },
-    bmiBarWrapper: {
-      flex: 1,
-      maxWidth: "400px" // Constrain width for better centering
-    },
-    bmiBarContainer: {
-      position: "relative" as const,
-      paddingTop: "28px", // Reduced padding
-      marginBottom: "8px"
-    },
-    bmiBarTrack: {
-      width: "100%",
-      height: "12px", // Slightly thinner for sleeker look
-      borderRadius: "6px",
-      overflow: "hidden",
-      display: "flex",
-      boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.05)",
-      position: "relative" as const
-    },
-    bmiSegment: {
-      height: "100%",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center"
-    },
-    bmiPointer: (percent: number) => ({
-      position: "absolute" as const,
-      left: `${percent}%`,
-      top: "4px", // Positioned above the track
-      transform: "translateX(-50%)",
-      display: "flex",
-      flexDirection: "column" as const,
-      alignItems: "center",
-      zIndex: 10
-    }),
-    bmiPointerLabel: {
-        fontSize: "12px",
-        fontWeight: 800,
-        color: COLORS.textMain,
-        marginBottom: "2px",
-        whiteSpace: "nowrap" as const
-    },
-    bmiPointerShape: {
-      width: "0",
-      height: "0",
-      borderLeft: "6px solid transparent",
-      borderRight: "6px solid transparent",
-      borderTop: `8px solid ${COLORS.textMain}`
-    },
-    bmiSegmentLabelRow: {
-      display: "grid",
-      gridTemplateColumns: "repeat(4, 1fr)",
-      gap: "8px",
-      marginTop: "12px"
-    },
-    bmiSegmentLabel: {
-      textAlign: "center" as const,
-      fontSize: "12px",
-      fontWeight: 700,
-      color: COLORS.textMain,
-      lineHeight: "1.2"
-    },
-    bmiSegmentRange: {
-      display: "block",
-      fontSize: "11px",
-      fontWeight: 500,
-      color: COLORS.textSecondary
-    },
     list: {
       fontSize: "14px",
       lineHeight: "1.8",
@@ -1320,81 +770,6 @@ export default function Calculator({ initialData }: { initialData?: any }) {
         borderBottom: "1px dashed #E5E7EB",
         paddingBottom: "8px"
     },
-    // Table Styles
-    table: {
-      width: "100%",
-      borderCollapse: "collapse" as const,
-      fontSize: "14px",
-      marginTop: "10px"
-    },
-    th: {
-      textAlign: "left" as const,
-      padding: "12px 16px",
-      backgroundColor: "#2563EB", // Blue header like image
-      color: "white",
-      fontWeight: 600,
-      textTransform: "uppercase" as const,
-      fontSize: "12px",
-      letterSpacing: "0.5px",
-      "&:first-child": {
-        borderTopLeftRadius: "8px"
-      },
-      "&:last-child": {
-        borderTopRightRadius: "8px"
-      }
-    },
-    td: {
-      padding: "12px 16px",
-      borderBottom: "1px solid #E5E7EB",
-      color: COLORS.textMain,
-      fontWeight: 500
-    },
-    tdValue: {
-      padding: "12px 16px",
-      borderBottom: "1px solid #E5E7EB",
-      color: "#15803D", // Green text for values
-      fontWeight: 700,
-      textAlign: "right" as const
-    },
-    idealResultHeader: {
-      backgroundColor: "#4D7C0F", // Green header like image
-      color: "white",
-      padding: "12px 16px",
-      fontSize: "18px",
-      fontWeight: 700,
-      borderTopLeftRadius: "12px",
-      borderTopRightRadius: "12px",
-      marginBottom: "16px",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center"
-    },
-    // Color bar for Body Fat
-    colorBar: {
-      width: "100%",
-      height: "12px",
-      borderRadius: "6px",
-      background: `linear-gradient(to right, 
-        ${COLORS.blue} 0%, 
-        ${COLORS.primary} 25%, 
-        ${COLORS.yellow} 50%, 
-        ${COLORS.orange} 75%,
-        ${COLORS.red} 100%)`,
-      position: "relative" as const,
-      marginTop: "10px",
-      marginBottom: "24px"
-    },
-    colorBarPointer: (percent: number) => ({
-      position: "absolute" as const,
-      left: `${Math.min(100, Math.max(0, (percent / 40) * 100))}%`, // Scale 0-40% roughly to bar
-      top: "-8px",
-      transform: "translateX(-50%)",
-      width: "0", 
-      height: "0", 
-      borderLeft: "8px solid transparent",
-      borderRight: "8px solid transparent",
-      borderTop: `10px solid ${COLORS.textMain}`
-    }),
     footer: {
       display: "flex",
       justifyContent: "center",
@@ -1416,90 +791,12 @@ export default function Calculator({ initialData }: { initialData?: any }) {
       transition: "color 0.2s",
       padding: "8px"
     },
-    photoUploadArea: {
-        border: `2px dashed ${COLORS.primary}`,
-        borderRadius: "12px",
-        backgroundColor: COLORS.accentLight,
-        height: "120px",
-        display: "flex",
-        flexDirection: "column" as const,
-        alignItems: "center",
-        justifyContent: "center",
-        cursor: "pointer",
-        transition: "all 0.2s",
-        position: "relative" as const
-    },
     sectionTitle: {
       fontSize: "20px",
       fontWeight: 700,
       color: COLORS.textMain,
       marginBottom: "16px",
       paddingLeft: "4px"
-    },
-    productGrid: {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-      gap: "16px"
-    },
-    productCard: {
-      backgroundColor: "white",
-      borderRadius: "16px",
-      padding: "16px",
-      boxShadow: "0 4px 20px -4px rgba(0,0,0,0.1)",
-      display: "flex",
-      flexDirection: "column" as const,
-      alignItems: "center",
-      transition: "transform 0.2s",
-      cursor: "pointer"
-    },
-    productImageArea: {
-      width: "100%",
-      aspectRatio: "1/1",
-      backgroundColor: "transparent",
-      borderRadius: "12px",
-      marginBottom: "12px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      overflow: "hidden",
-      padding: "10px",
-      boxSizing: "border-box" as const
-    },
-    productTitle: {
-      fontSize: "14px",
-      fontWeight: 600,
-      color: COLORS.textMain,
-      marginBottom: "4px",
-      textAlign: "center" as const,
-      lineHeight: "1.3",
-      whiteSpace: "pre-wrap" as const,
-      height: "36px", // Force 2 lines height roughly
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center"
-    },
-    productPrice: {
-      fontSize: "14px",
-      fontWeight: 700,
-      color: COLORS.primary,
-      marginBottom: "12px"
-    },
-    buyButton: {
-      width: "100%",
-      backgroundColor: COLORS.blue,
-      color: "white",
-      border: "none",
-      padding: "8px",
-      borderRadius: "8px",
-      fontSize: "12px",
-      fontWeight: 600,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "6px",
-      textDecoration: "none",
-      cursor: "pointer",
-      transition: "opacity 0.2s"
     },
     modalOverlay: {
       position: "fixed" as const,
@@ -1551,6 +848,35 @@ export default function Calculator({ initialData }: { initialData?: any }) {
       alignItems: "center",
       marginBottom: "10px"
     },
+    quizButton: {
+        width: "100%",
+        backgroundColor: COLORS.accentLight,
+        color: COLORS.primaryDark,
+        border: `1px solid ${COLORS.primary}`,
+        padding: "12px",
+        borderRadius: "12px",
+        fontSize: "14px",
+        fontWeight: 700,
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "8px",
+        marginBottom: "24px",
+        transition: "all 0.2s"
+    },
+    strategyBtn: (active: boolean) => ({
+        flex: 1,
+        padding: "8px",
+        borderRadius: "8px",
+        border: active ? `2px solid ${COLORS.primary}` : `1px solid ${COLORS.border}`,
+        backgroundColor: active ? COLORS.accentLight : "white",
+        color: active ? COLORS.primaryDark : COLORS.textSecondary,
+        fontWeight: 700,
+        fontSize: "12px",
+        cursor: "pointer",
+        textAlign: "center" as const
+    }),
     subscribeBtn: {
       display: "flex",
       alignItems: "center",
@@ -1568,559 +894,362 @@ export default function Calculator({ initialData }: { initialData?: any }) {
     }
   };
 
-  console.log("[BMI Calculator] Rendering component. Calculator type:", calculatorType);
-  console.log("[BMI Calculator] Current calculator data:", currentCalc);
-
   return (
     <div style={styles.container}>
       <div style={styles.headerRow}>
-        <div style={styles.title}>{calculatorType}</div>
+        <div style={styles.title}>Retirement Calculator</div>
         <button style={styles.subscribeBtn} className="btn-press" onClick={() => setShowSubscribeModal(true)}>
           <Mail size={14} />
-          Subscribe To Health News
+          Subscribe
         </button>
       </div>
       <div style={styles.subheader}>
-        {isBMI ? "Use this calculator to determine your Body Mass Index." : 
-         isIdeal ? "Use this calculator to compute ideal body weight ranges." :
-         isBF ? "Use this calculator to estimate your body fat percentage." :
-         isPhoto ? "Upload photos to get an AI-powered health assessment." :
-         "Use this calculator to estimate daily calorie needs."}
+        Plan your financial future.
       </div>
 
-      <div style={styles.dropdownWrapper}>
-        <select 
-          style={styles.dropdownSelect}
-          value={calculatorType}
-          onChange={(e) => {
-            setCalculatorType(e.target.value as CalculatorType);
-          }}
-        >
-          <option>BMI Calculator</option>
-          <option>Ideal Weight Calculator</option>
-          <option>Body Fat Calculator</option>
-          <option>Calorie Calculator</option>
-          <option>My Photo Health Calculator</option>
-        </select>
-        <div style={styles.dropdownIcon}>
-          <ChevronDown size={20} />
+      <button style={styles.quizButton} onClick={() => setShowQuiz(true)}>
+        <MessageSquare size={18} />
+        Get More Accurate Results
+      </button>
+
+      <div style={styles.card}>
+        <div style={styles.sectionTitle}>Retirement details</div>
+        
+        <div style={styles.row}>
+            <div style={styles.column}>
+                <div style={styles.label}>Current age</div>
+                <NumberControl 
+                    value={currentAge}
+                    onChange={(v) => updateVal("currentAge", v)}
+                    min={18} max={100} 
+                />
+            </div>
+
+            <div style={styles.column}>
+                <div style={styles.label}>Annual pre-tax income</div>
+                <NumberControl 
+                    value={income}
+                    onChange={(v) => updateVal("income", v)}
+                    min={0} max={10000000} step={1000}
+                    prefix="$"
+                />
+            </div>
         </div>
-      </div>
 
-      {/* Input Section */}
-      <div>
-        {/* Conditionally render tabs only if NOT photo calculator */}
-        {!isPhoto && (
-        <div style={styles.tabs}>
-          <div
-            style={styles.tab(units === "US")}
-                onClick={() => updateVal("units", "US")}
-          >
-            US Units
-          </div>
-          <div
-            style={styles.tab(units === "Metric")}
-                onClick={() => updateVal("units", "Metric")}
-          >
-            Metric Units
-          </div>
+        <div style={styles.row}>
+            <div style={styles.column}>
+                <div style={styles.label}>Current retirement savings</div>
+                <NumberControl 
+                    value={savings}
+                    onChange={(v) => updateVal("savings", v)}
+                    min={0} max={10000000} step={1000}
+                    prefix="$"
+                />
+            </div>
+
+            <div style={styles.column}>
+                <div style={styles.label}>Other retirement income</div>
+                <NumberControl 
+                    value={otherIncome}
+                    onChange={(v) => updateVal("otherIncome", v)}
+                    min={0} max={100000} step={100}
+                    prefix="$"
+                />
+            </div>
         </div>
-        )}
 
-        <div style={styles.card}>
-          
-          {/* Conditionally render Age & Gender Row if NOT photo calculator */}
-          {!isPhoto && (
-          <div style={styles.row}>
-                <div style={styles.column}>
-            <div style={styles.label}>Age</div>
-                    <NumberControl 
-              value={age}
-                    onChange={(val) => updateVal("age", val)} 
-                    min={2} 
-                    max={120} 
-                    label="Age" 
-                    suffix="yrs"
-                    />
-          </div>
-
-                <div style={styles.column}>
-            <div style={styles.label}>Gender</div>
+        <div style={styles.row}>
+            <div style={styles.column}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                    <div style={styles.label}>Monthly contributions</div>
                     <div style={styles.toggleContainer}>
                         <div 
-                            style={styles.toggleBtn(gender === "male")} 
-                            onClick={() => updateVal("gender", "male")}
-                        >
-                Male
-                        </div>
+                            style={styles.toggleBtn(contributionMode === "$")}
+                            onClick={() => updateVal("contributionMode", "$")}
+                        >$</div>
                         <div 
-                            style={styles.toggleBtn(gender === "female")} 
-                            onClick={() => updateVal("gender", "female")}
-                        >
-                Female
-            </div>
-          </div>
+                            style={styles.toggleBtn(contributionMode === "%")}
+                            onClick={() => updateVal("contributionMode", "%")}
+                        >%</div>
+                    </div>
                 </div>
-              </div>
-          )}
-
-          {/* Conditional Inputs */}
-          {!isPhoto && (
-              <>
-                {/* Row 2: Height & Weight */}
-          <div style={styles.row}>
-                    <div style={styles.column}>
-            <div style={styles.label}>Height</div>
-            {units === "US" ? (
-                            <NumberControl 
-                                value={totalInches.toString()} 
-                                onChange={handleTotalInchesChange} 
-                                min={12} 
-                                max={108} 
-                                displayValue={
-                                    <span style={{display: 'flex', alignItems: 'center', gap: 2}}>
-                                        {heightFt}<span style={{fontSize: 14, color: COLORS.textSecondary, marginRight: 6}}>'</span>
-                                        {heightIn}<span style={{fontSize: 14, color: COLORS.textSecondary}}>"</span>
-                                    </span>
-                                }
-                            />
-            ) : (
-                            <NumberControl 
-                  value={heightCm}
-                                onChange={(val) => updateVal("heightCm", val, "height")} 
-                                min={50} max={300} suffix="cm" 
+                <NumberControl 
+                    value={contributions}
+                    onChange={(v) => updateVal("contributions", v)}
+                    min={0} max={contributionMode === "$" ? 100000 : 100} step={contributionMode === "$" ? 100 : 1}
+                    prefix={contributionMode === "$" ? "$" : undefined}
+                    suffix={contributionMode === "%" ? "%" : undefined}
                 />
-            )}
-          </div>
+            </div>
 
-                    {(isBMI || isBF || isCalorie) && (
-                    <div style={styles.column}>
-            <div style={styles.label}>Weight</div>
-            {units === "US" ? (
-                            <NumberControl 
-                  value={weightLbs}
-                                onChange={(val) => updateVal("weightLbs", val, "weight")} 
-                                min={20} max={500} suffix="lbs" 
-                            />
-                        ) : (
-                            <NumberControl 
-                                value={weightKg} 
-                                onChange={(val) => updateVal("weightKg", val, "weight")} 
-                                min={10} max={300} suffix="kg" 
-                            />
-                        )}
+            <div style={styles.column}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                    <div style={styles.label}>Monthly budget in retirement</div>
+                    <div style={styles.toggleContainer}>
+                        <div 
+                            style={styles.toggleBtn(budgetMode === "$")}
+                            onClick={() => updateVal("budgetMode", "$")}
+                        >$</div>
+                        <div 
+                            style={styles.toggleBtn(budgetMode === "%")}
+                            onClick={() => updateVal("budgetMode", "%")}
+                        >%</div>
                     </div>
-                    )}
+                </div>
+                <NumberControl 
+                    value={budget}
+                    onChange={(v) => updateVal("budget", v)}
+                    min={0} max={budgetMode === "$" ? 100000 : 200} step={budgetMode === "$" ? 100 : 1}
+                    prefix={budgetMode === "$" ? "$" : undefined}
+                    suffix={budgetMode === "%" ? "%" : undefined}
+                />
+                <div 
+                    style={{fontSize: 12, color: COLORS.primary, fontWeight: 700, cursor: 'pointer', display: 'flex', justifyContent: 'flex-end', marginTop: 4}}
+                    onClick={applySmartBudget}
+                >
+                    <span>🪄 Estimate</span>
+                </div>
+            </div>
+        </div>
+
+        <div 
+            style={{display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginTop: 20, marginBottom: 20, color: COLORS.blue, fontWeight: 700, fontSize: 14}}
+            onClick={() => setShowAdvanced(!showAdvanced)}
+        >
+            {showAdvanced ? "HIDE ADVANCED DETAILS" : "ADVANCED DETAILS"}
+            <ChevronDown size={16} style={{transform: showAdvanced ? "rotate(180deg)" : "none", transition: "transform 0.2s"}} />
+        </div>
+
+        {showAdvanced && (
+            <>
+                <div style={{marginBottom: 16}}>
+                    <div style={{fontSize: 14, fontWeight: 600, color: COLORS.textMain, marginBottom: 8}}>Investment Strategy</div>
+                    <div style={{display: "flex", gap: 8}}>
+                        <div style={styles.strategyBtn(preRetireRate === "4" && postRetireRate === "3")} onClick={() => handleInvestmentStrategy("conservative")}>
+                            <div>Conservative</div>
+                            <div style={{fontSize: 10, fontWeight: 400, marginTop: 2}}>Bonds & Stability</div>
+                        </div>
+                        <div style={styles.strategyBtn(preRetireRate === "7" && postRetireRate === "5")} onClick={() => handleInvestmentStrategy("moderate")}>
+                            <div>Moderate</div>
+                            <div style={{fontSize: 10, fontWeight: 400, marginTop: 2}}>Balanced Growth</div>
+                        </div>
+                        <div style={styles.strategyBtn(preRetireRate === "9" && postRetireRate === "7")} onClick={() => handleInvestmentStrategy("aggressive")}>
+                            <div>Aggressive</div>
+                            <div style={{fontSize: 10, fontWeight: 400, marginTop: 2}}>Max Returns</div>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Activity Level for Calorie Calculator */}
-                {isCalorie && (
-                    <div style={{marginBottom: "20px"}}>
-                    <div style={{...styles.label, marginBottom: "8px"}}>Activity</div>
-                    <div style={styles.dropdownWrapper}>
-                        <select 
-                        style={styles.dropdownSelect}
-                        value={activityLevel}
-                        onChange={(e) => updateVal("activityLevel", e.target.value as ActivityLevel)}
-                        >
-                        <option value="sedentary">Sedentary: little or no exercise</option>
-                        <option value="light">Light: exercise 1-3 times/week</option>
-                        <option value="moderate">Moderate: exercise 4-5 times/week</option>
-                        <option value="active">Active: daily exercise or intense exercise 3-4 times/week</option>
-                        <option value="very_active">Very Active: intense exercise 6-7 times/week</option>
-                        <option value="extra_active">Extra Active: very intense exercise daily, or physical job</option>
-                        </select>
-                        <div style={styles.dropdownIcon}>
-                        <ChevronDown size={20} />
-                        </div>
+                <div style={styles.row}>
+                    <div style={styles.column}>
+                        <div style={styles.label}>Retirement age</div>
+                        <NumberControl 
+                            value={retirementAge}
+                            onChange={(v) => updateVal("retirementAge", v)}
+                            min={parseInt(currentAge) + 1} max={100} 
+                        />
                     </div>
+
+                    <div style={styles.column}>
+                        <div style={styles.label}>Life expectancy</div>
+                        <NumberControl 
+                            value={lifeExpectancy}
+                            onChange={(v) => updateVal("lifeExpectancy", v)}
+                            min={parseInt(retirementAge) + 1} max={120} 
+                        />
                     </div>
-                )}
+                </div>
 
-                {/* Extra Rows for Body Fat */}
-                {isBF && (
-                    <>
-                    <div style={styles.row}>
-                        <div style={styles.column}>
-                            <div style={styles.label}>Neck</div>
-                            {units === "US" ? (
-                                <NumberControl 
-                                    value={neckIn} 
-                                    onChange={(val) => updateVal("neckIn", val, "neck")} 
-                                    min={5} max={30} suffix="in" 
-                                />
-                            ) : (
-                                <NumberControl 
-                                    value={neckCm} 
-                                    onChange={(val) => updateVal("neckCm", val, "neck")} 
-                                    min={10} max={80} suffix="cm" 
-                                />
-                            )}
-                        </div>
-                        <div style={styles.column}>
-                            <div style={styles.label}>Waist</div>
-                            {units === "US" ? (
-                                <NumberControl 
-                                    value={waistIn} 
-                                    onChange={(val) => updateVal("waistIn", val, "waist")} 
-                                    min={10} max={80} suffix="in" 
-                                />
-                            ) : (
-                                <NumberControl 
-                                    value={waistCm} 
-                                    onChange={(val) => updateVal("waistCm", val, "waist")} 
-                                    min={20} max={200} suffix="cm" 
-                                />
-                            )}
-                        </div>
+                <div style={styles.row}>
+                    <div style={styles.column}>
+                        <div style={styles.label}>Pre-retirement rate of return</div>
+                        <NumberControl 
+                            value={preRetireRate}
+                            onChange={(v) => updateVal("preRetireRate", v)}
+                            min={0} max={15} suffix="%"
+                        />
                     </div>
-                    {gender === 'female' && (
-                        <div style={styles.row}>
-                        <div style={styles.column}>
-                            <div style={styles.label}>Hip</div>
-                            {units === "US" ? (
-                                <NumberControl 
-                                    value={hipIn} 
-                                    onChange={(val) => updateVal("hipIn", val, "hip")} 
-                                    min={10} max={80} suffix="in" 
-                                />
-                            ) : (
-                                <NumberControl 
-                                    value={hipCm} 
-                                    onChange={(val) => updateVal("hipCm", val, "hip")} 
-                                    min={20} max={200} suffix="cm" 
-                                />
-                            )}
-                        </div>
-                        <div style={styles.column}></div> {/* Spacer */}
-                        </div>
-                    )}
-                    </>
-                )}
-              </>
-          )}
 
-          {/* Photo Upload Section */}
-          {isPhoto && (
-              <div style={styles.row}>
-                  <div style={styles.column}>
-                      <div style={styles.label}>Front Photo</div>
-                      <label style={{...styles.photoUploadArea, backgroundImage: frontPhoto ? `url(${frontPhoto})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center'}}>
-                          {!frontPhoto && (
-              <>
-                                <Camera size={32} color={COLORS.primary} style={{marginBottom: 8}} />
-                                <span style={{fontSize: 12, color: COLORS.primary, fontWeight: 600}}>Tap to Upload</span>
-                              </>
-                          )}
-                <input
-                            type="file" 
-                            accept="image/*" 
-                            style={{display: 'none'}}
-                            onChange={(e) => handlePhotoUpload(e, 'frontPhoto')}
-                          />
-                      </label>
-                  </div>
-                  <div style={styles.column}>
-                      <div style={styles.label}>Side Photo</div>
-                      <label style={{...styles.photoUploadArea, backgroundImage: sidePhoto ? `url(${sidePhoto})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center'}}>
-                          {!sidePhoto && (
-                              <>
-                                <Camera size={32} color={COLORS.primary} style={{marginBottom: 8}} />
-                                <span style={{fontSize: 12, color: COLORS.primary, fontWeight: 600}}>Tap to Upload</span>
-              </>
-            )}
-                          <input 
-                            type="file" 
-                            accept="image/*" 
-                            style={{display: 'none'}}
-                            onChange={(e) => handlePhotoUpload(e, 'sidePhoto')}
-                          />
-                      </label>
-          </div>
-              </div>
-          )}
+                    <div style={styles.column}>
+                        <div style={styles.label}>Post-retirement rate of return</div>
+                        <NumberControl 
+                            value={postRetireRate}
+                            onChange={(v) => updateVal("postRetireRate", v)}
+                            min={0} max={15} suffix="%"
+                        />
+                    </div>
+                </div>
 
-          {/* Buttons */}
-          <div style={styles.buttonRow}>
+                <div style={styles.row}>
+                    <div style={styles.column}>
+                        <div style={styles.label}>Inflation rate</div>
+                        <NumberControl 
+                            value={inflation}
+                            onChange={(v) => updateVal("inflation", v)}
+                            min={0} max={10} suffix="%"
+                        />
+                    </div>
+
+                    <div style={styles.column}>
+                        <div style={styles.label}>Annual income increase</div>
+                        <NumberControl 
+                            value={incomeIncrease}
+                            onChange={(v) => updateVal("incomeIncrease", v)}
+                            min={0} max={10} suffix="%"
+                        />
+                    </div>
+                </div>
+            </>
+        )}
+
+        <div style={styles.buttonRow}>
             <button className="btn-press" style={styles.calcButton} onClick={calculate} disabled={isAnalyzing}>
-              {isAnalyzing ? (
-                  <>
-                    <Loader size={20} className="spin" /> Analyzing...
-                  </>
-              ) : (
-                  <>
-                    {isPhoto ? "Analyze My Photo" : "Analyze"} <Play size={20} fill="white" />
-                  </>
-              )}
+              {isAnalyzing ? <Loader size={20} className="spin" /> : <>Calculate <Play size={20} fill="white" /></>}
             </button>
-          </div>
         </div>
       </div>
 
-      {/* Results Section */}
-      {isBMI && calculatedBmi !== null && (
+      {currentCalc.result && (
         <div style={styles.resultCard}>
-          <div style={styles.resultHeader}>
-            <span style={styles.resultTitle}>Your Result</span>
-          </div>
-          
-          <div style={styles.resultContentRow}>
-             <div style={styles.bmiValueContainer}>
-                <div style={styles.bmiValue}>{calculatedBmi}</div>
-                <div style={styles.bmiCat}>{bmiCategory}</div>
-             </div>
-
-             <div style={styles.bmiBarWrapper}>
-                <div style={styles.bmiBarContainer}>
-                  {/* Pointer outside the overflow-hidden track */}
-      {calculatedBmi !== null && (
-                    <div style={styles.bmiPointer(bmiPointerPercent)}>
-                      <div style={styles.bmiPointerLabel}>{calculatedBmi}</div>
-                      <div style={styles.bmiPointerShape} />
-                    </div>
-                  )}
-                  <div style={styles.bmiBarTrack}>
-                    {BMI_SEGMENTS.map(segment => (
-                      <div
-                        key={segment.label}
-                        style={{
-                          ...styles.bmiSegment,
-                          backgroundColor: segment.color,
-                          flex: segment.max - segment.min
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <div style={styles.bmiSegmentLabelRow}>
-                  {BMI_SEGMENTS.map(segment => (
-                    <div key={`${segment.label}-label`} style={styles.bmiSegmentLabel}>
-                      <span>{segment.label}</span>
-                      <span style={styles.bmiSegmentRange}>{segment.range}</span>
-                    </div>
-                  ))}
-                </div>
-             </div>
-          </div>
-
-            <div style={styles.list}>
-              <div style={styles.listItem}>
-                  <span>Healthy BMI range</span>
-                  <span style={{fontWeight: 600, color: COLORS.textMain}}>18.5 - 25 kg/m²</span>
-              </div>
-              <div style={styles.listItem}>
-                  <span>Healthy weight</span>
-                  <span style={{fontWeight: 600, color: COLORS.textMain}}>{getIdealWeightRangeText()}</span>
-              </div>
-              <div style={{...styles.listItem, borderBottom: "none", marginBottom: 0}}>
-                  <span>Ponderal Index</span>
-                  <span style={{fontWeight: 600, color: COLORS.textMain}}>{(calculatedBmi / (parseFloat(heightCm || "178") / 100)).toFixed(1)} kg/m³</span>
-              </div>
-            </div>
-        </div>
-      )}
-
-      {isIdeal && idealWeights && (
-        <div style={styles.resultCard}>
-          <div style={styles.resultHeader}>
-            <span style={styles.resultTitle}>Your Result</span>
-          </div>
-          <div style={{marginBottom: "16px", fontSize: "14px", color: COLORS.textSecondary}}>
-            The ideal weight based on popular formulas:
-          </div>
-          <div style={styles.list}>
-            {Object.entries(idealWeights).map(([key, val], index, arr) => (
-              <div key={key} style={{
-                  ...styles.listItem, 
-                  borderBottom: index === arr.length - 1 ? "none" : styles.listItem.borderBottom,
-                  marginBottom: index === arr.length - 1 ? 0 : styles.listItem.marginBottom
-              }}>
-                <span>{key}</span>
-                <span style={{fontWeight: 600, color: COLORS.textMain}}>{val}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {isBF && bodyFatResult && (
-        <div style={{marginTop: "24px", boxShadow: "0 10px 40px -10px rgba(0,0,0,0.08)", borderRadius: "12px", overflow: "hidden", backgroundColor: "white"}}>
-          <div style={styles.idealResultHeader}>
-            <span>Result</span>
-          </div>
-          <div style={{padding: "0 24px 24px 24px"}}>
-             <div style={{fontSize: "24px", fontWeight: 800, color: "#15803D", marginBottom: "8px"}}>
-               Body Fat: {bodyFatResult.percent}%
-            </div>
-
-             {/* Visual Bar */}
-             <div style={{textAlign: "center", marginBottom: "24px", position: "relative"}}>
-                <div style={{fontSize: "14px", fontWeight: 700, marginBottom: "4px"}}>{bodyFatResult.percent}%</div>
-                <div style={styles.colorBar}>
-                    <div style={styles.colorBarPointer(parseFloat(bodyFatResult.percent))} />
-                </div>
-                <div style={{display: "flex", justifyContent: "space-between", fontSize: "10px", color: COLORS.textSecondary}}>
-                    <span>Essential</span>
-                    <span>Athletes</span>
-                    <span>Fitness</span>
-                    <span>Average</span>
-                    <span>Obese</span>
-                </div>
-             </div>
-
-             <table style={styles.table}>
-                <tbody>
-                    <tr>
-                        <td style={styles.td}>Body Fat (U.S. Navy Method)</td>
-                        <td style={{...styles.tdValue, color: COLORS.textMain}}>{bodyFatResult.percent}%</td>
-                    </tr>
-                    <tr>
-                        <td style={styles.td}>Body Fat Category</td>
-                        <td style={{...styles.tdValue, color: COLORS.textMain}}>{bodyFatResult.category}</td>
-                    </tr>
-                    <tr>
-                        <td style={styles.td}>Body Fat Mass</td>
-                        <td style={{...styles.tdValue, color: COLORS.textMain}}>{bodyFatResult.fatMass}</td>
-                    </tr>
-                    <tr>
-                        <td style={styles.td}>Lean Body Mass</td>
-                        <td style={{...styles.tdValue, color: COLORS.textMain}}>{bodyFatResult.leanMass}</td>
-                    </tr>
-                    <tr>
-                        <td style={styles.td}>Ideal Body Fat for Given Age (Jackson & Pollock)</td>
-                        <td style={{...styles.tdValue, color: COLORS.textMain}}>{bodyFatResult.idealBf}%</td>
-                    </tr>
-                    <tr>
-                        <td style={styles.td}>Body Fat to Lose to Reach Ideal</td>
-                        <td style={{...styles.tdValue, color: COLORS.textMain}}>{bodyFatResult.toLose}</td>
-                    </tr>
-                    <tr>
-                        <td style={{...styles.td, borderBottom: "none"}}>Body Fat (BMI method)</td>
-                        <td style={{...styles.tdValue, borderBottom: "none", color: COLORS.textMain}}>{bodyFatResult.bmiMethod}%</td>
-                    </tr>
-                </tbody>
-             </table>
-              </div>
-            </div>
-      )}
-
-      {isCalorie && calorieResult && (
-        <div style={styles.resultCard}>
-          <div style={styles.resultHeader}>
-            <span style={styles.resultTitle}>Your Result</span>
-          </div>
-          <div style={{marginBottom: "16px", fontSize: "14px", color: COLORS.textSecondary}}>
-            The results show a number of daily calorie estimates that can be used as a guideline for how many calories to consume each day to maintain, lose, or gain weight at a chosen rate.
-          </div>
-            <div style={styles.list}>
-            {/* Maintain */}
-            <div style={{...styles.listItem, alignItems: "center"}}>
-                <span style={{fontWeight: 600}}>Maintain weight</span>
-                <div style={{display: "flex", flexDirection: "column", alignItems: "flex-end"}}>
-                    <span style={{fontWeight: 800, fontSize: "18px", color: COLORS.primary}}>{calorieResult.maintain.toLocaleString()}</span>
-                    <span style={{fontSize: "12px", color: COLORS.textSecondary}}>Calories/day</span>
-                </div>
+            <div style={styles.resultHeader}>
+                <span style={styles.resultTitle}>Retirement savings at age {currentCalc.values.retirementAge}</span>
             </div>
             
-            {/* Weight Loss */}
-            <div style={{...styles.listItem, alignItems: "center"}}>
-                <div style={{display: "flex", flexDirection: "column"}}>
-                    <span style={{fontWeight: 600}}>Mild weight loss</span>
-                    <span style={{fontSize: "12px", color: COLORS.textSecondary}}>0.5 lb/week</span>
+            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 24, gap: 16}}>
+                <div style={{flex: 1}}>
+                    <div style={{fontSize: 14, color: COLORS.textMain, marginBottom: 4}}>What you'll have</div>
+                    <div style={{fontSize: 28, fontWeight: 800, color: COLORS.textMain}}>${currentCalc.result.have.toLocaleString()}</div>
                 </div>
-                <div style={{display: "flex", flexDirection: "column", alignItems: "flex-end"}}>
-                    <span style={{fontWeight: 800, fontSize: "18px", color: COLORS.textMain}}>{calorieResult.mildLoss.toLocaleString()}</span>
-                    <span style={{fontSize: "12px", color: COLORS.textSecondary}}>90%</span>
-                </div>
-            </div>
-
-            <div style={{...styles.listItem, alignItems: "center"}}>
-                <div style={{display: "flex", flexDirection: "column"}}>
-                    <span style={{fontWeight: 600}}>Weight loss</span>
-                    <span style={{fontSize: "12px", color: COLORS.textSecondary}}>1 lb/week</span>
-                </div>
-                <div style={{display: "flex", flexDirection: "column", alignItems: "flex-end"}}>
-                    <span style={{fontWeight: 800, fontSize: "18px", color: COLORS.textMain}}>{calorieResult.weightLoss.toLocaleString()}</span>
-                    <span style={{fontSize: "12px", color: COLORS.textSecondary}}>80%</span>
+                <div style={{flex: 1, borderLeft: `1px solid ${COLORS.border}`, paddingLeft: 16}}>
+                    <div style={{fontSize: 14, color: COLORS.textMain, marginBottom: 4}}>What you'll need</div>
+                    <div style={{fontSize: 28, fontWeight: 800, color: COLORS.textMain}}>${currentCalc.result.need.toLocaleString()}</div>
                 </div>
             </div>
 
-            <div style={{...styles.listItem, borderBottom: "none", marginBottom: 0, alignItems: "center"}}>
-                <div style={{display: "flex", flexDirection: "column"}}>
-                    <span style={{fontWeight: 600}}>Extreme weight loss</span>
-                    <span style={{fontSize: "12px", color: COLORS.textSecondary}}>2 lb/week</span>
-                </div>
-                <div style={{display: "flex", flexDirection: "column", alignItems: "flex-end"}}>
-                    <span style={{fontWeight: 800, fontSize: "18px", color: COLORS.textMain}}>{calorieResult.extremeLoss.toLocaleString()}</span>
-                    <span style={{fontSize: "12px", color: COLORS.textSecondary}}>61%</span>
+            <div style={{marginBottom: 16}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', color: COLORS.blue, fontSize: 12, fontWeight: 600}}>
+                    <HelpCircle size={14} />
+                    How did we calculate your results?
                 </div>
             </div>
-          </div>
-        </div>
-      )}
 
-      {isPhoto && photoResult && (
-        <>
-        <div style={styles.resultCard}>
-          <div style={styles.resultHeader}>
-            <span style={styles.resultTitle}>Your Health Insights</span>
-          </div>
-          <div style={{marginBottom: "16px", fontSize: "14px", color: COLORS.textSecondary}}>
-            Based on visual analysis of your uploaded photos:
-          </div>
-          
-          <div style={styles.list}>
-            <div style={styles.listItem}>
-                <span>Visual BMI Estimate</span>
-                <span style={{fontWeight: 600, color: COLORS.textMain}}>{photoResult.bmiEstimate}</span>
+            {/* Tabs */}
+            <div style={{display: 'flex', borderBottom: `1px solid ${COLORS.border}`, marginBottom: 24}}>
+                <div 
+                    style={{padding: '8px 16px', borderBottom: resultView === 'graph' ? `2px solid ${COLORS.primary}` : 'none', fontWeight: 700, color: resultView === 'graph' ? COLORS.primary : COLORS.textSecondary, cursor: 'pointer', fontSize: 12, letterSpacing: 1}}
+                    onClick={() => setResultView('graph')}
+                >GRAPH VIEW</div>
+                <div 
+                    style={{padding: '8px 16px', borderBottom: resultView === 'summary' ? `2px solid ${COLORS.primary}` : 'none', fontWeight: 700, color: resultView === 'summary' ? COLORS.primary : COLORS.textSecondary, cursor: 'pointer', fontSize: 12, letterSpacing: 1}}
+                    onClick={() => setResultView('summary')}
+                >SUMMARY VIEW</div>
             </div>
-            <div style={styles.listItem}>
-                <span>General Fitness</span>
-                <span style={{fontWeight: 600, color: COLORS.textMain, maxWidth: "50%", textAlign: "right"}}>{photoResult.fitness}</span>
-            </div>
-            
-            <div style={{marginTop: "16px"}}>
-                <div style={{fontWeight: 600, marginBottom: "8px", color: COLORS.primary}}>Recommendations</div>
-                {photoResult.tips.map((tip: string, i: number) => (
-                    <div key={i} style={{display: "flex", gap: "8px", fontSize: "14px", marginBottom: "4px", color: COLORS.textMain}}>
-                        <span style={{color: COLORS.primary}}>•</span>
-                        <span>{tip}</span>
-                    </div>
-                ))}
-            </div>
-          </div>
-        </div>
 
-        <div style={{marginTop: "32px"}}>
-            <div style={styles.sectionTitle}>Suggested Supplements</div>
-            <div style={styles.productGrid}>
-                {SUPPLEMENTS.map(product => (
-                <div key={product.id} style={styles.productCard}>
-                    <div style={styles.productImageArea}>
-                        <img 
-                            src={product.image} 
-                            alt={product.title.replace('\n', ' ')} 
-                            style={{maxWidth: "100%", maxHeight: "100%", objectFit: "contain"}}
-                        />
-                    </div>
-                    <div style={{width: "100%", display: "flex", flexDirection: "column", alignItems: "center"}}>
-                        <div style={styles.productTitle}>{product.title}</div>
-                        <div style={styles.productPrice}>{product.price}</div>
-                        <a href={product.link} target="_blank" rel="noreferrer" style={styles.buyButton} className="btn-press">
-                            <ShoppingCart size={16} /> View Product
-                        </a>
+            {resultView === 'graph' ? (
+                <div style={{height: 300, width: '100%', fontSize: 12}}>
+                    <ResponsiveContainer>
+                        <AreaChart data={currentCalc.result.graphData} margin={{top: 10, right: 10, left: -20, bottom: 0}}>
+                            <defs>
+                                <linearGradient id="colorCurrent" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor={COLORS.primary} stopOpacity={0.1}/>
+                                    <stop offset="95%" stopColor={COLORS.primary} stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={COLORS.border} />
+                            <XAxis dataKey="age" tick={{fill: COLORS.textSecondary}} tickLine={false} axisLine={{stroke: COLORS.border}} minTickGap={30} />
+                            <YAxis tick={{fill: COLORS.textSecondary}} tickFormatter={(val) => `$${(val/1000000).toFixed(1)}m`} tickLine={false} axisLine={false} />
+                            <Tooltip 
+                                content={({ active, payload, label }) => {
+                                    if (active && payload && payload.length) {
+                                        const rec = payload.find(p => p.name === 'Recommended')?.value as number;
+                                        const cur = payload.find(p => p.name === 'Current path')?.value as number;
+                                        const diff = (cur !== undefined && rec !== undefined) ? cur - rec : 0;
+                                        return (
+                                            <div style={{backgroundColor: 'white', padding: 12, borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', border: '1px solid #E5E7EB'}}>
+                                                <div style={{fontWeight: 600, marginBottom: 8, fontSize: 12, color: COLORS.textSecondary}}>Age {label}</div>
+                                                <div style={{display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 4}}>
+                                                    <span style={{color: COLORS.blue, fontWeight: 600, fontSize: 12}}>Recommended</span>
+                                                    <span style={{fontWeight: 700, color: COLORS.textMain, fontSize: 12}}>${rec?.toLocaleString()}</span>
+                                                </div>
+                                                <div style={{display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 8}}>
+                                                    <span style={{color: COLORS.primary, fontWeight: 600, fontSize: 12}}>Current path</span>
+                                                    <span style={{fontWeight: 700, color: COLORS.textMain, fontSize: 12}}>${cur?.toLocaleString()}</span>
+                                                </div>
+                                                <div style={{display: 'flex', justifyContent: 'space-between', gap: 16, borderTop: '1px dashed #E5E7EB', paddingTop: 4}}>
+                                                    <span style={{color: COLORS.textSecondary, fontSize: 12}}>Difference</span>
+                                                    <span style={{fontWeight: 700, color: diff >= 0 ? COLORS.primary : COLORS.red, fontSize: 12}}>{diff >= 0 ? '+' : ''}${diff.toLocaleString()}</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                }}
+                            />
+                            <Area type="monotone" dataKey="recommended" stroke={COLORS.blue} strokeDasharray="5 5" fill="transparent" strokeWidth={2} name="Recommended" />
+                            <Area type="monotone" dataKey="current" stroke={COLORS.primary} fill="url(#colorCurrent)" strokeWidth={2} name="Current path" />
+                            <ReferenceDot x={parseInt(currentCalc.values.retirementAge)} y={currentCalc.result.have} r={4} fill={COLORS.primary} stroke="white" strokeWidth={2} />
+                            <ReferenceDot x={parseInt(currentCalc.values.retirementAge)} y={currentCalc.result.need} r={4} fill={COLORS.blue} stroke="white" strokeWidth={2} />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                    <div style={{display: 'flex', justifyContent: 'center', gap: 16, marginTop: 8}}>
+                        <div style={{display: 'flex', alignItems: 'center', gap: 4}}>
+                            <div style={{width: 12, height: 2, backgroundColor: COLORS.blue}}></div>
+                            <span style={{color: COLORS.textSecondary, fontSize: 12}}>Recommended</span>
+                        </div>
+                        <div style={{display: 'flex', alignItems: 'center', gap: 4}}>
+                            <div style={{width: 12, height: 2, backgroundColor: COLORS.primary}}></div>
+                            <span style={{color: COLORS.textSecondary, fontSize: 12}}>Current path</span>
+                        </div>
                     </div>
                 </div>
-                ))}
-            </div>
+            ) : (
+                <div style={styles.list}>
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16}}>
+                        <div style={{fontWeight: 700, color: COLORS.textSecondary, fontSize: 12}}>Current retirement plan</div>
+                        <div style={{fontWeight: 700, color: COLORS.textSecondary, fontSize: 12}}>Target retirement plan</div>
+                    </div>
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16}}>
+                        {/* Current Column */}
+                        <div>
+                            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 8, borderBottom: '1px dashed #E5E7EB', paddingBottom: 8}}>
+                                <span style={{fontSize: 14, color: COLORS.textSecondary}}>Total retirement savings</span>
+                                <span style={{fontWeight: 700, color: COLORS.primary, fontSize: 14}}>${currentCalc.result.have.toLocaleString()}</span>
+                            </div>
+                            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 8, borderBottom: '1px dashed #E5E7EB', paddingBottom: 8}}>
+                                <span style={{fontSize: 14, color: COLORS.textSecondary}}>Monthly contribution</span>
+                                <span style={{fontWeight: 700, color: COLORS.primary, fontSize: 14}}>${currentCalc.result.currentMonthlyContrib.toLocaleString()}</span>
+                            </div>
+                            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 8, borderBottom: '1px dashed #E5E7EB', paddingBottom: 8}}>
+                                <span style={{fontSize: 14, color: COLORS.textSecondary}}>Age savings runs out</span>
+                                <span style={{fontWeight: 700, color: currentCalc.result.runOutAgeCurrent < parseInt(currentCalc.values.lifeExpectancy) ? COLORS.red : COLORS.primary, fontSize: 14}}>
+                                    {currentCalc.result.runOutAgeCurrent >= parseInt(currentCalc.values.lifeExpectancy) ? `${currentCalc.result.runOutAgeCurrent}+` : currentCalc.result.runOutAgeCurrent}
+                                </span>
+                            </div>
+                        </div>
+                        {/* Target Column */}
+                        <div>
+                            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 8, borderBottom: '1px dashed #E5E7EB', paddingBottom: 8}}>
+                                <span style={{fontSize: 14, color: COLORS.textSecondary}}>Total retirement savings</span>
+                                <span style={{fontWeight: 700, color: COLORS.primary, fontSize: 14}}>${currentCalc.result.need.toLocaleString()}</span>
+                            </div>
+                            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 8, borderBottom: '1px dashed #E5E7EB', paddingBottom: 8}}>
+                                <span style={{fontSize: 14, color: COLORS.textSecondary}}>Monthly contribution</span>
+                                <span style={{fontWeight: 700, color: COLORS.primary, fontSize: 14}}>${currentCalc.result.monthlyContribNeeded.toLocaleString()}</span>
+                            </div>
+                            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 8, borderBottom: '1px dashed #E5E7EB', paddingBottom: 8}}>
+                                <span style={{fontSize: 14, color: COLORS.textSecondary}}>Age savings runs out</span>
+                                <span style={{fontWeight: 700, color: currentCalc.result.runOutAgeIdeal >= parseInt(currentCalc.values.lifeExpectancy) ? COLORS.primary : COLORS.red, fontSize: 14}}>
+                                    {currentCalc.result.runOutAgeIdeal >= parseInt(currentCalc.values.lifeExpectancy) ? `${currentCalc.result.runOutAgeIdeal}+` : currentCalc.result.runOutAgeIdeal}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
-        </>
       )}
       
       <div style={styles.footer} className="no-print">
-        <button style={styles.footerBtn} onClick={clearInputs} className="btn-press">
-          <RotateCcw size={16} /> Reset Defaults
-        </button>
         <button style={styles.footerBtn} className="btn-press">
           <Heart size={16} /> Donate
         </button>
@@ -2177,6 +1306,107 @@ export default function Calculator({ initialData }: { initialData?: any }) {
         </div>
       )}
 
+      {/* Quiz Modal */}
+      {showQuiz && (
+        <div style={styles.modalOverlay}>
+            <div style={styles.modalContent}>
+                <button style={styles.modalClose} onClick={() => setShowQuiz(false)}>✕</button>
+                
+                <div style={{marginBottom: 24, textAlign: "center"}}>
+                    <div style={{fontSize: 20, fontWeight: 800, color: COLORS.textMain, marginBottom: 8}}>Personalize Your Plan</div>
+                    <div style={{fontSize: 14, color: COLORS.textSecondary}}>Answer a few questions to refine your retirement inputs.</div>
+                </div>
+
+                {quizStep === 0 && (
+                    <div>
+                        <div style={{fontSize: 16, fontWeight: 600, color: COLORS.textMain, marginBottom: 16}}>1. Do you plan to have a family?</div>
+                        <div style={{marginBottom: 16}}>
+                            <div style={styles.label}>How many children?</div>
+                            <NumberControl 
+                                value={String(quizAnswers.kids)}
+                                onChange={(v) => setQuizAnswers({...quizAnswers, kids: parseInt(v)})}
+                                min={0} max={10}
+                            />
+                        </div>
+                        <div style={{marginTop: 24, display: "flex", justifyContent: "flex-end"}}>
+                            <button style={styles.subscribeBtn} onClick={() => setQuizStep(1)}>Next →</button>
+                        </div>
+                    </div>
+                )}
+
+                {quizStep === 1 && (
+                    <div>
+                        <div style={{fontSize: 16, fontWeight: 600, color: COLORS.textMain, marginBottom: 16}}>2. College Plans</div>
+                        <div style={{fontSize: 14, color: COLORS.textSecondary, marginBottom: 16}}>
+                            Do you plan to pay for your children's college education?
+                        </div>
+                        <div style={{display: "flex", flexDirection: "column", gap: 12}}>
+                            <button 
+                                style={styles.strategyBtn(quizAnswers.college === "no")} 
+                                onClick={() => setQuizAnswers({...quizAnswers, college: "no"})}
+                            >
+                                No / They will take loans
+                            </button>
+                            <button 
+                                style={styles.strategyBtn(quizAnswers.college === "partial")} 
+                                onClick={() => setQuizAnswers({...quizAnswers, college: "partial"})}
+                            >
+                                Partial Support
+                            </button>
+                            <button 
+                                style={styles.strategyBtn(quizAnswers.college === "full")} 
+                                onClick={() => setQuizAnswers({...quizAnswers, college: "full"})}
+                            >
+                                Full Support
+                            </button>
+                        </div>
+                        <div style={{marginTop: 24, display: "flex", justifyContent: "space-between"}}>
+                            <button style={{...styles.subscribeBtn, background: 'transparent', color: COLORS.textSecondary}} onClick={() => setQuizStep(0)}>← Back</button>
+                            <button style={styles.subscribeBtn} onClick={() => setQuizStep(2)}>Next →</button>
+                        </div>
+                    </div>
+                )}
+
+                {quizStep === 2 && (
+                    <div>
+                        <div style={{fontSize: 16, fontWeight: 600, color: COLORS.textMain, marginBottom: 16}}>3. Retirement Lifestyle</div>
+                        <div style={{fontSize: 14, color: COLORS.textSecondary, marginBottom: 16}}>
+                            How do you envision your travel plans?
+                        </div>
+                        <div style={{display: "flex", flexDirection: "column", gap: 12}}>
+                            <button 
+                                style={styles.strategyBtn(quizAnswers.travel === "low")} 
+                                onClick={() => setQuizAnswers({...quizAnswers, travel: "low"})}
+                            >
+                                <div>Start Local</div>
+                                <div style={{fontSize: 12, fontWeight: 400, opacity: 0.8}}>Low cost, mostly local trips</div>
+                            </button>
+                            <button 
+                                style={styles.strategyBtn(quizAnswers.travel === "moderate")} 
+                                onClick={() => setQuizAnswers({...quizAnswers, travel: "moderate"})}
+                            >
+                                <div>Explorer</div>
+                                <div style={{fontSize: 12, fontWeight: 400, opacity: 0.8}}>1-2 major trips per year</div>
+                            </button>
+                            <button 
+                                style={styles.strategyBtn(quizAnswers.travel === "high")} 
+                                onClick={() => setQuizAnswers({...quizAnswers, travel: "high"})}
+                            >
+                                <div>Globetrotter</div>
+                                <div style={{fontSize: 12, fontWeight: 400, opacity: 0.8}}>Frequent international travel</div>
+                            </button>
+                        </div>
+                        <div style={{marginTop: 24, display: "flex", justifyContent: "space-between"}}>
+                            <button style={{...styles.subscribeBtn, background: 'transparent', color: COLORS.textSecondary}} onClick={() => setQuizStep(1)}>← Back</button>
+                            <button style={styles.subscribeBtn} onClick={handleQuizComplete}>Apply to Calculator</button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+      )}
+
+      {/* Subscription Modal */}
       {showSubscribeModal && (
         <div style={styles.modalOverlay} onClick={() => setShowSubscribeModal(false)}>
           <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
@@ -2188,7 +1418,7 @@ export default function Calculator({ initialData }: { initialData?: any }) {
               Stay Updated
             </div>
             <div style={{fontSize: "14px", color: COLORS.textSecondary, marginBottom: "24px"}}>
-              Get the latest health tips and calculator updates delivered to your inbox.
+              Get the latest updates delivered to your inbox.
             </div>
 
             {subscribeStatus === "success" ? (
