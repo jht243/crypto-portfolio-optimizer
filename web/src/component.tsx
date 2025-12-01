@@ -162,7 +162,7 @@ const DEFAULT_VALUES: CalculatorValues = {
   otherIncome: "0",
   retirementAge: "67",
   lifeExpectancy: "95",
-  preRetireRate: "6",
+  preRetireRate: "7",
   postRetireRate: "5",
   inflation: "3",
   incomeIncrease: "2",
@@ -1045,6 +1045,20 @@ export default function RetirementCalculatorHelloWorld({ initialData }: { initia
       marginBottom: "16px",
       paddingLeft: "4px"
     },
+    bottomModalOverlay: {
+      position: "fixed" as const,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0,0,0,0.5)",
+      display: "flex",
+      alignItems: "flex-end",
+      justifyContent: "center",
+      zIndex: 1000,
+      padding: "20px",
+      paddingBottom: "40px"
+    },
     modalOverlay: {
       position: "fixed" as const,
       top: 0,
@@ -1053,17 +1067,19 @@ export default function RetirementCalculatorHelloWorld({ initialData }: { initia
       bottom: 0,
       backgroundColor: "rgba(0,0,0,0.5)",
       display: "flex",
-      alignItems: "center",
+      alignItems: "flex-start",
       justifyContent: "center",
       zIndex: 1000,
-      padding: "20px"
+      padding: "20px",
+      paddingTop: "40px",
+      overflowY: "auto" as const
     },
     modalContent: {
       backgroundColor: "white",
       borderRadius: "24px",
-      padding: "32px",
+      padding: "24px",
       width: "100%",
-      maxWidth: "400px",
+      maxWidth: "560px",
       boxShadow: "0 20px 60px -10px rgba(0,0,0,0.2)",
       position: "relative" as const
     },
@@ -1138,8 +1154,6 @@ export default function RetirementCalculatorHelloWorld({ initialData }: { initia
       </div>
 
       <div style={styles.card}>
-        <div style={styles.sectionTitle}>Retirement details</div>
-        
         <div style={styles.row}>
             <div style={styles.column}>
                 <div style={styles.label}>Current age</div>
@@ -1165,7 +1179,7 @@ export default function RetirementCalculatorHelloWorld({ initialData }: { initia
 
         <div style={styles.row}>
             <div style={styles.column}>
-                <div style={styles.label}>Current retirement savings</div>
+                <div style={styles.label}>Current Savings</div>
                 <div style={styles.subheaderLabel}>Total amount saved for retirement</div>
                 <NumberControl 
                     value={savings}
@@ -1182,7 +1196,7 @@ export default function RetirementCalculatorHelloWorld({ initialData }: { initia
             </div>
 
             <div style={styles.column}>
-                <div style={styles.label}>Other Monthly Retirement Income</div>
+                <div style={styles.label}>Other Monthly Income</div>
                 <div style={styles.subheaderLabel}>Monthly income from other sources</div>
                 <NumberControl 
                     value={otherIncome}
@@ -1203,48 +1217,26 @@ export default function RetirementCalculatorHelloWorld({ initialData }: { initia
             <div style={styles.column}>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                     <div style={styles.label}>Monthly contributions</div>
-                    <div style={styles.toggleContainer}>
-                        <div 
-                            style={styles.toggleBtn(contributionMode === "$")}
-                            onClick={() => updateVal("contributionMode", "$")}
-                        >$</div>
-                        <div 
-                            style={styles.toggleBtn(contributionMode === "%")}
-                            onClick={() => updateVal("contributionMode", "%")}
-                        >%</div>
-                    </div>
                 </div>
                 <div style={styles.subheaderLabel}>Amount you save each month</div>
                 <NumberControl 
                     value={contributions}
                     onChange={(v) => updateVal("contributions", v)}
-                    min={0} max={contributionMode === "$" ? 100000 : 100} step={contributionMode === "$" ? 100 : 1}
-                    prefix={contributionMode === "$" ? "$" : undefined}
-                    suffix={contributionMode === "%" ? "%" : undefined}
+                    min={0} max={100000} step={100}
+                    prefix="$"
                 />
             </div>
 
             <div style={styles.column}>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                     <div style={styles.label}>Monthly budget in retirement</div>
-                    <div style={styles.toggleContainer}>
-                        <div 
-                            style={styles.toggleBtn(budgetMode === "$")}
-                            onClick={() => updateVal("budgetMode", "$")}
-                        >$</div>
-                        <div 
-                            style={styles.toggleBtn(budgetMode === "%")}
-                            onClick={() => updateVal("budgetMode", "%")}
-                        >%</div>
-                    </div>
                 </div>
                 <div style={styles.subheaderLabel}>Estimated monthly spending</div>
                 <NumberControl 
                     value={budget}
                     onChange={(v) => updateVal("budget", v)}
-                    min={0} max={budgetMode === "$" ? 100000 : 200} step={budgetMode === "$" ? 100 : 1}
-                    prefix={budgetMode === "$" ? "$" : undefined}
-                    suffix={budgetMode === "%" ? "%" : undefined}
+                    min={0} max={100000} step={100}
+                    prefix="$"
                 />
                 <div 
                     style={{fontSize: 12, color: COLORS.primary, fontWeight: 700, cursor: 'pointer', display: 'flex', justifyContent: 'flex-end', marginTop: 4}}
@@ -1590,7 +1582,7 @@ export default function RetirementCalculatorHelloWorld({ initialData }: { initia
       </div>
 
       {showFeedbackModal && (
-        <div style={styles.modalOverlay} onClick={() => setShowFeedbackModal(false)}>
+        <div style={styles.bottomModalOverlay} onClick={() => setShowFeedbackModal(false)}>
           <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
             <button style={styles.modalClose} onClick={() => setShowFeedbackModal(false)}>
               <Minus size={24} style={{transform: "rotate(45deg)"}} />
@@ -1640,10 +1632,10 @@ export default function RetirementCalculatorHelloWorld({ initialData }: { initia
             <div style={styles.modalContent}>
                 <button style={styles.modalClose} onClick={() => setShowSavingsModal(false)}>✕</button>
                 <div style={{marginBottom: 24, textAlign: "center"}}>
-                    <div style={{fontSize: 20, fontWeight: 800, color: COLORS.textMain, marginBottom: 8}}>Retirement Savings Breakdown</div>
+                    <div style={{fontSize: 20, fontWeight: 800, color: COLORS.textMain, marginBottom: 8}}>Current Savings Breakdown</div>
                 </div>
                 
-                <div style={{display: "flex", flexDirection: "column", gap: 16}}>
+                <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16}}>
                     <div>
                         <div style={styles.label}>Savings Account</div>
                         <NumberControl 
@@ -1713,11 +1705,11 @@ export default function RetirementCalculatorHelloWorld({ initialData }: { initia
             <div style={styles.modalContent}>
                 <button style={styles.modalClose} onClick={() => setShowIncomeModal(false)}>✕</button>
                 <div style={{marginBottom: 24, textAlign: "center"}}>
-                    <div style={{fontSize: 20, fontWeight: 800, color: COLORS.textMain, marginBottom: 8}}>Other Monthly Retirement Income</div>
+                    <div style={{fontSize: 20, fontWeight: 800, color: COLORS.textMain, marginBottom: 8}}>Other Monthly Income</div>
                     <div style={{fontSize: 14, color: COLORS.textSecondary}}>Enter monthly income amounts</div>
                 </div>
                 
-                <div style={{display: "flex", flexDirection: "column", gap: 16}}>
+                <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16}}>
                     <div>
                         <div style={styles.label}>Social Security Payment</div>
                         <NumberControl 

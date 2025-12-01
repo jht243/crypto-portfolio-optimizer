@@ -48719,7 +48719,7 @@ var DEFAULT_VALUES = {
   otherIncome: "0",
   retirementAge: "67",
   lifeExpectancy: "95",
-  preRetireRate: "6",
+  preRetireRate: "7",
   postRetireRate: "5",
   inflation: "3",
   incomeIncrease: "2",
@@ -49482,6 +49482,20 @@ function RetirementCalculatorHelloWorld({ initialData: initialData2 }) {
       marginBottom: "16px",
       paddingLeft: "4px"
     },
+    bottomModalOverlay: {
+      position: "fixed",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0,0,0,0.5)",
+      display: "flex",
+      alignItems: "flex-end",
+      justifyContent: "center",
+      zIndex: 1e3,
+      padding: "20px",
+      paddingBottom: "40px"
+    },
     modalOverlay: {
       position: "fixed",
       top: 0,
@@ -49490,17 +49504,19 @@ function RetirementCalculatorHelloWorld({ initialData: initialData2 }) {
       bottom: 0,
       backgroundColor: "rgba(0,0,0,0.5)",
       display: "flex",
-      alignItems: "center",
+      alignItems: "flex-start",
       justifyContent: "center",
       zIndex: 1e3,
-      padding: "20px"
+      padding: "20px",
+      paddingTop: "40px",
+      overflowY: "auto"
     },
     modalContent: {
       backgroundColor: "white",
       borderRadius: "24px",
-      padding: "32px",
+      padding: "24px",
       width: "100%",
-      maxWidth: "400px",
+      maxWidth: "560px",
       boxShadow: "0 20px 60px -10px rgba(0,0,0,0.2)",
       position: "relative"
     },
@@ -49570,7 +49586,6 @@ function RetirementCalculatorHelloWorld({ initialData: initialData2 }) {
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.subheader, children: "Plan your financial future." }),
     /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.card, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.sectionTitle, children: "Retirement details" }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.row, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.column, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.label, children: "Current age" }),
@@ -49603,7 +49618,7 @@ function RetirementCalculatorHelloWorld({ initialData: initialData2 }) {
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.row, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.column, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.label, children: "Current retirement savings" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.label, children: "Current Savings" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.subheaderLabel, children: "Total amount saved for retirement" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
             NumberControl,
@@ -49626,7 +49641,7 @@ function RetirementCalculatorHelloWorld({ initialData: initialData2 }) {
           )
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.column, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.label, children: "Other Monthly Retirement Income" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.label, children: "Other Monthly Income" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.subheaderLabel, children: "Monthly income from other sources" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
             NumberControl,
@@ -49651,27 +49666,7 @@ function RetirementCalculatorHelloWorld({ initialData: initialData2 }) {
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.row, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.column, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.label, children: "Monthly contributions" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.toggleContainer, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                "div",
-                {
-                  style: styles.toggleBtn(contributionMode === "$"),
-                  onClick: () => updateVal("contributionMode", "$"),
-                  children: "$"
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                "div",
-                {
-                  style: styles.toggleBtn(contributionMode === "%"),
-                  onClick: () => updateVal("contributionMode", "%"),
-                  children: "%"
-                }
-              )
-            ] })
-          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.label, children: "Monthly contributions" }) }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.subheaderLabel, children: "Amount you save each month" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
             NumberControl,
@@ -49679,35 +49674,14 @@ function RetirementCalculatorHelloWorld({ initialData: initialData2 }) {
               value: contributions,
               onChange: (v) => updateVal("contributions", v),
               min: 0,
-              max: contributionMode === "$" ? 1e5 : 100,
-              step: contributionMode === "$" ? 100 : 1,
-              prefix: contributionMode === "$" ? "$" : void 0,
-              suffix: contributionMode === "%" ? "%" : void 0
+              max: 1e5,
+              step: 100,
+              prefix: "$"
             }
           )
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.column, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.label, children: "Monthly budget in retirement" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.toggleContainer, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                "div",
-                {
-                  style: styles.toggleBtn(budgetMode === "$"),
-                  onClick: () => updateVal("budgetMode", "$"),
-                  children: "$"
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                "div",
-                {
-                  style: styles.toggleBtn(budgetMode === "%"),
-                  onClick: () => updateVal("budgetMode", "%"),
-                  children: "%"
-                }
-              )
-            ] })
-          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.label, children: "Monthly budget in retirement" }) }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.subheaderLabel, children: "Estimated monthly spending" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
             NumberControl,
@@ -49715,10 +49689,9 @@ function RetirementCalculatorHelloWorld({ initialData: initialData2 }) {
               value: budget,
               onChange: (v) => updateVal("budget", v),
               min: 0,
-              max: budgetMode === "$" ? 1e5 : 200,
-              step: budgetMode === "$" ? 100 : 1,
-              prefix: budgetMode === "$" ? "$" : void 0,
-              suffix: budgetMode === "%" ? "%" : void 0
+              max: 1e5,
+              step: 100,
+              prefix: "$"
             }
           ),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
@@ -50090,7 +50063,7 @@ function RetirementCalculatorHelloWorld({ initialData: initialData2 }) {
         " Print"
       ] })
     ] }),
-    showFeedbackModal && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.modalOverlay, onClick: () => setShowFeedbackModal(false), children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.modalContent, onClick: (e) => e.stopPropagation(), children: [
+    showFeedbackModal && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.bottomModalOverlay, onClick: () => setShowFeedbackModal(false), children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.modalContent, onClick: (e) => e.stopPropagation(), children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { style: styles.modalClose, onClick: () => setShowFeedbackModal(false), children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Minus, { size: 24, style: { transform: "rotate(45deg)" } }) }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: "24px", fontWeight: 800, marginBottom: "8px", color: COLORS.textMain }, children: "Feedback" }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: "14px", color: COLORS.textSecondary, marginBottom: "24px" }, children: "Help us improve the calculator." }),
@@ -50119,8 +50092,8 @@ function RetirementCalculatorHelloWorld({ initialData: initialData2 }) {
     ] }) }),
     showSavingsModal && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.modalOverlay, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.modalContent, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { style: styles.modalClose, onClick: () => setShowSavingsModal(false), children: "\u2715" }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { marginBottom: 24, textAlign: "center" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 20, fontWeight: 800, color: COLORS.textMain, marginBottom: 8 }, children: "Retirement Savings Breakdown" }) }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: 16 }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { marginBottom: 24, textAlign: "center" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 20, fontWeight: 800, color: COLORS.textMain, marginBottom: 8 }, children: "Current Savings Breakdown" }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.label, children: "Savings Account" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
@@ -50200,10 +50173,10 @@ function RetirementCalculatorHelloWorld({ initialData: initialData2 }) {
     showIncomeModal && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.modalOverlay, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.modalContent, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { style: styles.modalClose, onClick: () => setShowIncomeModal(false), children: "\u2715" }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { marginBottom: 24, textAlign: "center" }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 20, fontWeight: 800, color: COLORS.textMain, marginBottom: 8 }, children: "Other Monthly Retirement Income" }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 20, fontWeight: 800, color: COLORS.textMain, marginBottom: 8 }, children: "Other Monthly Income" }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 14, color: COLORS.textSecondary }, children: "Enter monthly income amounts" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: 16 }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.label, children: "Social Security Payment" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
