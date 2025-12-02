@@ -48954,36 +48954,42 @@ function RetirementCalculatorHelloWorld({ initialData: initialData2 }) {
     const incIncrease = parseFloat(incomeIncrease) / 100;
     const noteText = personalNotes.toLowerCase();
     let budgetAdj = 0;
+    let incomeAdj = 0;
     let savingsAdj = 0;
-    if (noteText.includes("inherit") || noteText.includes("gift") || noteText.includes("sell")) {
-      const matches2 = noteText.matchAll(/[\$]?([0-9,]+)/g);
-      let maxVal = 0;
-      for (const match of matches2) {
-        const val = parseFloat(match[1].replace(/,/g, ""));
-        if (val > maxVal) maxVal = val;
+    const sentences = noteText.split(/[.!?]+/).filter((s) => s.trim().length > 0);
+    for (const sentence of sentences) {
+      const amountMatch = sentence.match(/[\$]?([0-9,]+)/);
+      if (amountMatch) {
+        const amount = parseFloat(amountMatch[1].replace(/,/g, ""));
+        if (!isNaN(amount) && amount > 0) {
+          const isMonthly = sentence.includes("month") || sentence.includes("/mo");
+          const multiplier = isMonthly ? 12 : 1;
+          const isRecurring = isMonthly || sentence.includes("year") || sentence.includes("annual");
+          if (isRecurring) {
+            if (sentence.includes("pension") || sentence.includes("social security") || sentence.includes("annuity") || sentence.includes("earn") || sentence.includes("salary") || sentence.includes("rent") || sentence.includes("income")) {
+              incomeAdj += amount * multiplier;
+            } else if (sentence.includes("save") || sentence.includes("cut") || sentence.includes("reduce") || sentence.includes("lower")) {
+              budgetAdj -= amount * multiplier;
+            } else {
+              budgetAdj += amount * multiplier;
+            }
+          } else {
+            if (sentence.includes("inherit") || sentence.includes("gift") || sentence.includes("sell") || sentence.includes("windfall") || sentence.includes("bonus") || sentence.includes("profit")) {
+              savingsAdj += amount;
+            } else if (sentence.includes("debt") || sentence.includes("loan") || sentence.includes("owe") || sentence.includes("cost") || sentence.includes("buy") || sentence.includes("purchase") || sentence.includes("spend") || sentence.includes("pay") || sentence.includes("college") || sentence.includes("wedding") || sentence.includes("renovation") || sentence.includes("surgery")) {
+              savingsAdj -= amount;
+            }
+          }
+        }
       }
-      if (maxVal > 0) savingsAdj += maxVal;
     }
     if (noteText.includes("wife") || noteText.includes("husband") || noteText.includes("spouse") || noteText.includes("sick") || noteText.includes("care") || noteText.includes("disabled") || noteText.includes("support") || noteText.includes("mother") || noteText.includes("father")) {
       budgetAdj += 1500 * 12;
     }
-    if (noteText.includes("debt") || noteText.includes("loan") || noteText.includes("owe")) {
-      const matches2 = noteText.matchAll(/[\$]?([0-9,]+)/g);
-      let maxVal = 0;
-      for (const match of matches2) {
-        const val = parseFloat(match[1].replace(/,/g, ""));
-        if (val > maxVal) maxVal = val;
-      }
-      if (maxVal > 0) {
-        savingsAdj -= maxVal;
-      } else {
-        budgetAdj += 500 * 12;
-      }
-    }
     const yearsPre = retirementAgeNum - currentAgeNum;
     const yearsPost = lifeExpectancyNum - retirementAgeNum;
     const annualExpensesToday = parseFloat(budget) * 12 + budgetAdj;
-    const annualIncomeToday = parseFloat(otherIncome) * 12;
+    const annualIncomeToday = parseFloat(otherIncome) * 12 + incomeAdj;
     const monthlyShortfallToday = Math.max(0, parseFloat(budget) - parseFloat(otherIncome));
     const annualShortfallToday = monthlyShortfallToday * 12;
     const annualShortfallAtRetire = annualShortfallToday * Math.pow(1 + infl, yearsPre);
@@ -49851,7 +49857,7 @@ function RetirementCalculatorHelloWorld({ initialData: initialData2 }) {
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { marginBottom: 16, borderTop: `1px dashed ${COLORS.border}`, paddingTop: 16 }, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 14, fontWeight: 600, color: COLORS.textMain, marginBottom: 8 }, children: "Additional Notes" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 8 }, children: `Tell us anything else (e.g. "I will inherit $50,000", "I support my sick mother"). We'll try to adjust your plan.` }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }, children: "Add any extra details about your retirement plans here." }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
             "textarea",
             {
@@ -49860,15 +49866,16 @@ function RetirementCalculatorHelloWorld({ initialData: initialData2 }) {
               placeholder: "Type here...",
               style: {
                 width: "100%",
-                height: "80px",
-                padding: "12px",
+                height: "52px",
+                padding: "10px 12px",
                 borderRadius: "12px",
                 border: `1px solid ${COLORS.border}`,
                 fontSize: "14px",
                 fontFamily: "inherit",
                 marginBottom: "8px",
                 resize: "vertical",
-                backgroundColor: COLORS.card
+                backgroundColor: COLORS.card,
+                boxSizing: "border-box"
               }
             }
           )

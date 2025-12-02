@@ -1428,8 +1428,8 @@ export default function RetirementCalculatorHelloWorld({ initialData }: { initia
 
                 <div style={{marginBottom: 16, borderTop: `1px dashed ${COLORS.border}`, paddingTop: 16}}>
                     <div style={{fontSize: 14, fontWeight: 600, color: COLORS.textMain, marginBottom: 8}}>Additional Notes</div>
-                    <div style={{fontSize: 12, color: COLORS.textSecondary, marginBottom: 8}}>
-                        Tell us anything else (e.g. "I will inherit $50,000", "I support my sick mother"). We'll try to adjust your plan.
+                    <div style={{fontSize: 12, color: COLORS.textSecondary, marginBottom: 8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>
+                        Add any extra details about your retirement plans here.
                     </div>
                     <textarea 
                         value={personalNotes}
@@ -1437,15 +1437,16 @@ export default function RetirementCalculatorHelloWorld({ initialData }: { initia
                         placeholder="Type here..."
                         style={{
                             width: "100%", 
-                            height: "80px", 
-                            padding: "12px", 
+                            height: "52px", 
+                            padding: "10px 12px", 
                             borderRadius: "12px", 
                             border: `1px solid ${COLORS.border}`, 
                             fontSize: "14px", 
                             fontFamily: "inherit",
                             marginBottom: "8px",
                             resize: "vertical",
-                            backgroundColor: COLORS.card
+                            backgroundColor: COLORS.card,
+                            boxSizing: "border-box"
                         }}
                     />
                 </div>
