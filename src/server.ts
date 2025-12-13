@@ -30,7 +30,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 
-type PortfolioOptimizerWidget = {
+type CryptoPortfolioOptimizerWidget = {
   id: string;
   title: string;
   templateUri: string;
@@ -211,15 +211,15 @@ function readWidgetHtml(componentName: string): string {
 // Added timestamp suffix to force cache invalidation for width fix
 const VERSION = (process.env.RENDER_GIT_COMMIT?.slice(0, 7) || Date.now().toString()) + '-' + Date.now();
 
-function widgetMeta(widget: PortfolioOptimizerWidget, bustCache: boolean = false) {
+function widgetMeta(widget: CryptoPortfolioOptimizerWidget, bustCache: boolean = false) {
   const templateUri = bustCache
-    ? `ui://widget/portfolio-optimizer.html?v=${VERSION}`
+    ? `ui://widget/crypto-portfolio-optimizer.html?v=${VERSION}`
     : widget.templateUri;
 
   return {
     "openai/outputTemplate": templateUri,
     "openai/widgetDescription":
-      "A Monte Carlo portfolio simulator that projects investment growth based on asset allocation, time horizon, and contribution strategy. Call this tool immediately with NO arguments to let the user enter their data manually. Only provide arguments if the user has explicitly stated them.",
+      "A Monte Carlo crypto portfolio simulator that projects investment growth based on asset allocation, time horizon, and contribution strategy. Call this tool immediately with NO arguments to let the user enter their data manually. Only provide arguments if the user has explicitly stated them.",
     "openai/componentDescriptions": {
       "allocation-form": "Input form for asset allocation percentages or dollar amounts across stocks, bonds, cash, real estate, crypto, and other investments.",
       "projection-chart": "Interactive chart showing projected portfolio growth with confidence intervals over time.",
@@ -238,12 +238,12 @@ function widgetMeta(widget: PortfolioOptimizerWidget, bustCache: boolean = false
       "401k"
     ],
     "openai/sampleConversations": [
-      { "user": "Optimize my portfolio", "assistant": "Here is the Portfolio Optimizer. You can set your asset allocation, time horizon, and contribution strategy to see projected growth." },
+      { "user": "Optimize my crypto portfolio", "assistant": "Here is the Crypto Portfolio Optimizer. You can set your asset allocation, time horizon, and contribution strategy to see projected growth." },
       { "user": "I have $100,000 to invest for 20 years with moderate risk tolerance", "assistant": "I'll set up a balanced portfolio projection with your $100,000 initial investment over a 20-year horizon." },
-      { "user": "What allocation should I use for growth with $50k in stocks and $30k in bonds?", "assistant": "I've loaded your current allocation. The simulator will project your portfolio growth based on historical asset class returns." },
+      { "user": "What allocation should I use for growth with $50k in stocks and $30k in crypto?", "assistant": "I've loaded your current allocation. The simulator will project your portfolio growth based on historical asset class returns." },
     ],
     "openai/starterPrompts": [
-      "Optimize my portfolio",
+      "Optimize my crypto portfolio",
       "Analyze my asset allocation",
       "Project my investment growth",
       "What's the best allocation for growth?",
@@ -254,11 +254,11 @@ function widgetMeta(widget: PortfolioOptimizerWidget, bustCache: boolean = false
     "openai/widgetCSP": {
       connect_domains: [
         "https://api.stlouisfed.org",
-        "https://portfolio-optimizer-svpa.onrender.com",
+        "https://crypto-portfolio-optimizer-svpa.onrender.com",
         "http://localhost:8010"
       ],
       script_src_domains: [
-        "https://portfolio-optimizer-svpa.onrender.com"
+        "https://crypto-portfolio-optimizer-svpa.onrender.com"
       ],
       resource_domains: [],
     },
@@ -270,21 +270,21 @@ function widgetMeta(widget: PortfolioOptimizerWidget, bustCache: boolean = false
   } as const;
 }
 
-const widgets: PortfolioOptimizerWidget[] = [
+const widgets: CryptoPortfolioOptimizerWidget[] = [
   {
-    id: "portfolio-optimizer",
-    title: "Portfolio Optimizer — Monte Carlo investment simulator",
-    templateUri: `ui://widget/portfolio-optimizer.html?v=${VERSION}`,
+    id: "crypto-portfolio-optimizer",
+    title: "Crypto Portfolio Optimizer — Monte Carlo investment simulator",
+    templateUri: `ui://widget/crypto-portfolio-optimizer.html?v=${VERSION}`,
     invoking:
-      "Opening the Portfolio Optimizer...",
+      "Opening the Crypto Portfolio Optimizer...",
     invoked:
-      "Here is the Portfolio Optimizer. Set your asset allocation, time horizon, and contribution strategy to project your investment growth.",
-    html: readWidgetHtml("portfolio-optimizer"),
+      "Here is the Crypto Portfolio Optimizer. Set your asset allocation, time horizon, and contribution strategy to project your investment growth.",
+    html: readWidgetHtml("crypto-portfolio-optimizer"),
   },
 ];
 
-const widgetsById = new Map<string, PortfolioOptimizerWidget>();
-const widgetsByUri = new Map<string, PortfolioOptimizerWidget>();
+const widgetsById = new Map<string, CryptoPortfolioOptimizerWidget>();
+const widgetsByUri = new Map<string, CryptoPortfolioOptimizerWidget>();
 
 widgets.forEach((widget) => {
   widgetsById.set(widget.id, widget);
@@ -428,13 +428,13 @@ const resourceTemplates: ResourceTemplate[] = widgets.map((widget) => ({
   _meta: widgetMeta(widget),
 }));
 
-function createPortfolioOptimizerServer(): Server {
+function createCryptoPortfolioOptimizerServer(): Server {
   const server = new Server(
     {
-      name: "portfolio-optimizer",
+      name: "crypto-portfolio-optimizer",
       version: "0.1.0",
       description:
-        "Portfolio Optimizer is a comprehensive app for analyzing portfolio allocation.",
+        "Crypto Portfolio Optimizer is a comprehensive app for analyzing portfolio allocation.",
     },
     {
       capabilities: {
@@ -676,7 +676,7 @@ function createPortfolioOptimizerServer(): Server {
         logAnalytics("tool_call_success", {
           toolName: request.params.name,
           params: args,
-          inferredQuery: inferredQuery.length > 0 ? inferredQuery.join(", ") : "Portfolio Optimizer",
+          inferredQuery: inferredQuery.length > 0 ? inferredQuery.join(", ") : "Crypto Portfolio Optimizer",
           responseTime,
 
           device: deviceCategory,
@@ -758,7 +758,7 @@ function createPortfolioOptimizerServer(): Server {
           ? `Portfolio analysis ready with ${args.time_horizon || 10}-year projection. ${
               args.initial_investment ? `Initial investment: $${Number(args.initial_investment).toLocaleString()}.` : ''
             } ${args.risk_tolerance ? `Risk profile: ${args.risk_tolerance}.` : ''} Use the interactive widget to adjust allocation and run Monte Carlo simulations.`
-          : "Portfolio Optimizer is ready. Enter your asset allocation, time horizon, and contribution strategy to project your investment growth.";
+          : "Crypto Portfolio Optimizer is ready. Enter your asset allocation, time horizon, and contribution strategy to project your investment growth.";
 
         return {
           content: [{ type: "text", text: contentText }],
@@ -1056,7 +1056,7 @@ function generateAnalyticsDashboard(logs: AnalyticsEvent[], alerts: AlertEntry[]
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Portfolio Optimizer Analytics</title>
+  <title>Crypto Portfolio Optimizer Analytics</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; padding: 20px; }
@@ -1083,7 +1083,7 @@ function generateAnalyticsDashboard(logs: AnalyticsEvent[], alerts: AlertEntry[]
 </head>
 <body>
   <div class="container">
-    <h1>📊 Portfolio Optimizer Analytics</h1>
+    <h1>📊 Crypto Portfolio Optimizer Analytics</h1>
     <p class="subtitle">Last 7 days • Auto-refresh every 60s</p>
     
     <div class="grid">
@@ -1408,7 +1408,7 @@ async function subscribeToButtondown(email: string, topicId: string, topicName: 
 
   const metadata: Record<string, any> = {
     topicName,
-    source: "portfolio-optimizer",
+    source: "crypto-portfolio-optimizer",
     subscribedAt: new Date().toISOString(),
   };
 
@@ -1498,7 +1498,7 @@ async function updateButtondownSubscriber(email: string, topicId: string, topicN
   const updatedMetadata = {
     ...existingMetadata,
     [topicKey]: topicData,
-    source: "portfolio-optimizer",
+    source: "crypto-portfolio-optimizer",
   };
 
   const updateRequestBody = {
@@ -1553,8 +1553,8 @@ async function handleSubscribe(req: IncomingMessage, res: ServerResponse) {
     // Support both old (settlementId/settlementName) and new (topicId/topicName) field names
     const parsed = JSON.parse(body);
     const email = parsed.email;
-    const topicId = parsed.topicId || parsed.settlementId || "portfolio-news";
-    const topicName = parsed.topicName || parsed.settlementName || "Portfolio Optimizer Updates";
+    const topicId = parsed.topicId || parsed.settlementId || "crypto-portfolio-optimizer";
+    const topicName = parsed.topicName || parsed.settlementName || "Crypto Portfolio Optimizer Updates";
     if (!email || !email.includes("@")) {
       res.writeHead(400).end(JSON.stringify({ error: "Invalid email address" }));
       return;
@@ -1628,7 +1628,7 @@ async function handleSubscribe(req: IncomingMessage, res: ServerResponse) {
 
 async function handleSseRequest(res: ServerResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  const server = createPortfolioOptimizerServer();
+  const server = createCryptoPortfolioOptimizerServer();
   const transport = new SSEServerTransport(postPath, res);
   const sessionId = transport.sessionId;
 

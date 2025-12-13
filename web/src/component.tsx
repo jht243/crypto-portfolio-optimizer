@@ -174,10 +174,10 @@ const DEFAULT_VALUES: CalculatorValues = {
   budgetMode: "$"
 };
 
-const CALCULATOR_TYPES = ["Portfolio Optimizer"] as const;
+const CALCULATOR_TYPES = ["Crypto Portfolio Optimizer"] as const;
 type CalculatorType = typeof CALCULATOR_TYPES[number];
 
-const STORAGE_KEY = "PORTFOLIO_OPTIMIZER_DATA";
+const STORAGE_KEY = "CRYPTO_PORTFOLIO_OPTIMIZER_DATA";
 const EXPIRATION_DAYS = 30;
 
 const loadSavedData = (): Record<CalculatorType, CalculatorData> => {
@@ -190,14 +190,14 @@ const loadSavedData = (): Record<CalculatorType, CalculatorData> => {
       
       if (daysDiff < EXPIRATION_DAYS) {
         const merged: Record<CalculatorType, CalculatorData> = {
-            "Portfolio Optimizer": { values: { ...DEFAULT_VALUES }, touched: {}, result: null }
+            "Crypto Portfolio Optimizer": { values: { ...DEFAULT_VALUES }, touched: {}, result: null }
         };
 
-        if (data["Portfolio Optimizer"]) {
-            merged["Portfolio Optimizer"] = {
-                ...merged["Portfolio Optimizer"],
-                ...data["Portfolio Optimizer"],
-                values: { ...merged["Portfolio Optimizer"].values, ...data["Portfolio Optimizer"].values }
+        if (data["Crypto Portfolio Optimizer"]) {
+            merged["Crypto Portfolio Optimizer"] = {
+                ...merged["Crypto Portfolio Optimizer"],
+                ...data["Crypto Portfolio Optimizer"],
+                values: { ...merged["Crypto Portfolio Optimizer"].values, ...data["Crypto Portfolio Optimizer"].values }
             };
         }
         return merged;
@@ -208,20 +208,20 @@ const loadSavedData = (): Record<CalculatorType, CalculatorData> => {
   }
   
   return {
-    "Portfolio Optimizer": { values: { ...DEFAULT_VALUES }, touched: {}, result: null }
+    "Crypto Portfolio Optimizer": { values: { ...DEFAULT_VALUES }, touched: {}, result: null }
   };
 };
 
-export default function PortfolioOptimizerHelloWorld({ initialData }: { initialData?: any }) {
-  const [calculatorType, setCalculatorType] = useState<CalculatorType>("Portfolio Optimizer");
+export default function CryptoPortfolioOptimizerHelloWorld({ initialData }: { initialData?: any }) {
+  const [calculatorType, setCalculatorType] = useState<CalculatorType>("Crypto Portfolio Optimizer");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   
   const [calculators, setCalculators] = useState<Record<CalculatorType, CalculatorData>>(() => {
     const loaded = loadSavedData();
     if (initialData && Object.keys(initialData).length > 0) {
        try {
-         const current = loaded["Portfolio Optimizer"];
-         loaded["Portfolio Optimizer"] = {
+         const current = loaded["Crypto Portfolio Optimizer"];
+         loaded["Crypto Portfolio Optimizer"] = {
            ...current,
            values: {
              ...current.values,
@@ -276,8 +276,8 @@ export default function PortfolioOptimizerHelloWorld({ initialData }: { initialD
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 email,
-                topicId: "portfolio-news",
-                topicName: "Portfolio Optimizer Updates"
+                topicId: "crypto-portfolio-news",
+                topicName: "Crypto Portfolio Optimizer Updates"
             })
         });
         

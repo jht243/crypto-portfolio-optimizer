@@ -29,8 +29,8 @@ const ASSET_ASSUMPTIONS: Record<string, { mean: number; stdDev: number; name: st
 };
 
 // LocalStorage persistence
-const STORAGE_KEY = "PORTFOLIO_OPTIMIZER_DATA";
-const BANNER_STORAGE_KEY = "PORTFOLIO_BANNER_DISMISSED";
+const STORAGE_KEY = "CRYPTO_PORTFOLIO_OPTIMIZER_DATA";
+const BANNER_STORAGE_KEY = "CRYPTO_PORTFOLIO_BANNER_DISMISSED";
 const EXPIRATION_HOURS = 72; // 3 days
 
 interface SavedPortfolioData {
@@ -425,8 +425,8 @@ export default function PortfolioSimulator({ initialData }: { initialData?: any 
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 email,
-                topicId: "portfolio-optimizer",
-                topicName: "Portfolio Optimizer Calculator"
+                topicId: "crypto-portfolio-optimizer",
+                topicName: "Crypto Portfolio Optimizer Calculator"
             })
         });
         
@@ -468,7 +468,7 @@ export default function PortfolioSimulator({ initialData }: { initialData?: any 
                 event: "user_feedback",
                 data: {
                     feedback: feedbackText,
-                    calculatorType: "Portfolio Optimizer"
+                    calculatorType: "Crypto Portfolio Optimizer"
                 }
             })
         });

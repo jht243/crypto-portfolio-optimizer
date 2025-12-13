@@ -34,8 +34,8 @@ const inlineScript = `
       const url = URL.createObjectURL(blob);
       import(url)
         .catch(err => {
-          console.error('[Portfolio Optimizer] Failed to load:', err);
-          const root = document.getElementById('portfolio-optimizer-root');
+          console.error('[Crypto Portfolio Optimizer] Failed to load:', err);
+          const root = document.getElementById('crypto-portfolio-optimizer-root');
           if (root) {
             root.innerHTML = '<div style="padding:20px;text-align:center;font-family:sans-serif;color:#DC2626"><h3>Failed to load calculator</h3><p>Please refresh the page.</p></div>';
           }

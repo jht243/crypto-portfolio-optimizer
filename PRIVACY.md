@@ -1,11 +1,11 @@
 # Privacy Policy
 
-**Portfolio Optimizer**  
+**Crypto Portfolio Optimizer**  
 *Last Updated: December 2024*
 
 ## Overview
 
-Portfolio Optimizer is a Monte Carlo investment simulation tool that runs entirely in your browser within ChatGPT. We are committed to protecting your privacy and being transparent about our data practices.
+Crypto Portfolio Optimizer is a Monte Carlo investment simulation tool that runs entirely in your browser within ChatGPT. We are committed to protecting your privacy and being transparent about our data practices.
 
 ## Data Collection
 

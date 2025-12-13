@@ -1,12 +1,12 @@
-# Portfolio Optimizer - ChatGPT MCP Connector
+# Crypto Portfolio Optimizer - ChatGPT MCP Connector
 
-A Model Context Protocol (MCP) server that provides an interactive portfolio optimization widget for ChatGPT. Helps users optimize investments and analyze finance metrics.
+A Model Context Protocol (MCP) server that provides an interactive crypto portfolio optimization widget for ChatGPT. Helps users optimize investments and analyze finance metrics.
 
 **[Privacy Policy](PRIVACY.md)** | **[OpenAI Apps SDK](https://developers.openai.com/apps-sdk)**
 
 ## Features
 
-- 💰 Optimize Portfolio
+- 💰 Optimize Crypto Portfolio
 - 📊 Simple inputs: height, weight, age (as proxies for financial data in this demo)
 - 🔄 Interactive widget that appears directly in ChatGPT
 - 📈 Shows portfolio status breakdown
@@ -39,19 +39,19 @@ Server runs on `http://localhost:8000`. **Note:** HTTP endpoints are for local d
 3. Create new Web Service from this repo
 4. Render will auto-detect `render.yaml` and deploy
 
-Your permanent URL: `https://portfolio-optimizer-svpa.onrender.com/mcp`
+Your permanent URL: `https://crypto-portfolio-optimizer-svpa.onrender.com/mcp`
 
 ### Transport Security
 
 - **Production:** Always access the MCP endpoints via `https://…` (Render automatically provisions TLS). Never expose the widget or APIs over plain HTTP in production.
 - **Local development:** The only allowed HTTP endpoint is `http://localhost:8000` while running `npm start`. Do not publish that URL or tunnel it publicly.
-- **External monitors/webhooks:** When configuring Pingdom, Datadog, etc., use the HTTPS endpoint (`https://portfolio-optimizer-svpa.onrender.com/analytics`, `…/mcp`, etc.) to keep telemetry encrypted end-to-end.
+- **External monitors/webhooks:** When configuring Pingdom, Datadog, etc., use the HTTPS endpoint (`https://crypto-portfolio-optimizer-svpa.onrender.com/analytics`, `…/mcp`, etc.) to keep telemetry encrypted end-to-end.
 
 ## How to Use in ChatGPT
 
 1. Open ChatGPT in **Developer Mode**
-2. Add MCP Connector with URL: `https://portfolio-optimizer-svpa.onrender.com/mcp`
-3. Say: **"optimize my portfolio"**
+2. Add MCP Connector with URL: `https://crypto-portfolio-optimizer-svpa.onrender.com/mcp`
+3. Say: **"optimize my crypto portfolio"**
 4. The interactive widget appears!
 
 ## Tech Stack
@@ -78,7 +78,7 @@ ANALYTICS_PASSWORD=your_password
 - **How we use it:** These fields feed the `/analytics` dashboard and error alerts only; we do not sell or share this data with third parties.
 - **Retention:** Logs are stored for **30 days** in the `/logs` folder on the server and then automatically rotated.
 - **User input storage:** The widget caches your in-progress form values in `localStorage` so they persist across refreshes; entries automatically expire after **30 days**. Clear them anytime with the “Reset defaults” button.
-- **Deletion / questions:** Email **support@portfolio-optimizer.onrender.com** (or open a GitHub issue) with the timestamp (UTC) of your ChatGPT session and we will delete the associated log entry within 7 days.
+- **Deletion / questions:** Email **support@crypto-portfolio-optimizer.onrender.com** (or open a GitHub issue) with the timestamp (UTC) of your ChatGPT session and we will delete the associated log entry within 7 days.
 
 ## Monitoring & Alerts
 

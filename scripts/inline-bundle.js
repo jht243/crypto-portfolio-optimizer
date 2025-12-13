@@ -27,7 +27,7 @@ console.log('[Inline Bundle] Escaped script tags in JS content');
 
 // Replace the external script tag with an inline one
 const updatedHtml = htmlContent.replace(
-  /<script type="module" src="\/assets\/portfolio-optimizer\.js"><\/script>/,
+  /<script type="module" src="\/assets\/crypto-portfolio-optimizer\.js"><\/script>/,
   `<script type="module">\n${jsContent}\n</script>`
 );
 

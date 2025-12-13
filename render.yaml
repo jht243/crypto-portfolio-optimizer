@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: portfolio-optimizer
+    name: crypto-portfolio-optimizer
     env: node
     plan: free
     region: oregon

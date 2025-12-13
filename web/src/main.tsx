@@ -107,7 +107,7 @@ const getHydrationData = (): any => {
   return {};
 };
 
-console.log("[Main] Portfolio Optimizer main.tsx loading...");
+console.log("[Main] Crypto Portfolio Optimizer main.tsx loading...");
 
 // App wrapper with tool switching
 const COLORS = {
@@ -130,10 +130,10 @@ function App({ initialData }: { initialData: any }) {
 }
 
 // Get initial data
-const container = document.getElementById("portfolio-optimizer-root");
+const container = document.getElementById("crypto-portfolio-optimizer-root");
 
 if (!container) {
-  throw new Error("portfolio-optimizer-root element not found");
+  throw new Error("crypto-portfolio-optimizer-root element not found");
 }
 
 const root = createRoot(container);

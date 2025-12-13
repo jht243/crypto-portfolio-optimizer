@@ -1,11 +1,11 @@
 {
-  "name": "portfolio-optimizer-mcp-node",
+  "name": "crypto-portfolio-optimizer-mcp-node",
   "version": "0.1.0",
   "type": "module",
   "private": true,
-  "description": "Portfolio Optimizer — optimize portfolio allocation. Investment and portfolio analysis.",
+  "description": "Crypto Portfolio Optimizer — optimize portfolio allocation. Investment and portfolio analysis.",
   "keywords": [
-    "portfolio optimizer",
+    "crypto portfolio optimizer",
     "financial calculator",
     "portfolio",
     "finance"
