@@ -30,7 +30,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 
-type TravelChecklistWidget = {
+type ReminderWidget = {
   id: string;
   title: string;
   templateUri: string;
@@ -201,56 +201,49 @@ function readWidgetHtml(componentName: string): string {
 // Added timestamp suffix to force cache invalidation for width fix
 const VERSION = (process.env.RENDER_GIT_COMMIT?.slice(0, 7) || Date.now().toString()) + '-' + Date.now();
 
-function widgetMeta(widget: TravelChecklistWidget, bustCache: boolean = false) {
+function widgetMeta(widget: ReminderWidget, bustCache: boolean = false) {
   const templateUri = bustCache
-    ? `ui://widget/travel-checklist.html?v=${VERSION}`
+    ? `ui://widget/reminder-app.html?v=${VERSION}`
     : widget.templateUri;
 
   return {
     "openai/outputTemplate": templateUri,
     "openai/widgetDescription":
-      "A smart travel checklist generator that creates personalized, customizable packing lists based on your trip profile. Generates checklists for documents, clothing, toiletries, health, tech, activities, and pre-departure tasks. Call this tool immediately with NO arguments to let the user enter their trip details manually. Only provide arguments if the user has explicitly stated them.",
+      "A smart reminder app that helps you create, manage, and track reminders with gamification. Set natural language reminders, categorize by priority, and earn points for completing tasks.",
     "openai/componentDescriptions": {
-      "trip-form": "Input form for trip details including destination, duration, travelers, climate, and purpose.",
-      "checklist-display": "Display showing categorized packing checklist items with checkboxes.",
-      "progress-tracker": "Progress bar showing how many items have been packed.",
+      "reminder-form": "Input form for creating new reminders with description, due date, and category.",
+      "reminder-list": "Display showing categorized reminders with checkboxes and progress tracking.",
+      "gamification-panel": "Display showing user points, streaks, and achievements.",
     },
     "openai/widgetKeywords": [
-      "travel",
-      "checklist",
-      "packing",
-      "vacation",
-      "trip",
-      "luggage",
-      "travel planning",
-      "packing list",
-      "documents",
-      "toiletries",
-      "clothes",
-      "international",
-      "domestic"
+      "reminder",
+      "todo",
+      "task",
+      "calendar",
+      "notification",
+      "productivity",
+      "gamification",
+      "points",
+      "streak"
     ],
     "openai/sampleConversations": [
-      { "user": "What should I pack for my trip?", "assistant": "Here is the Smart Travel Checklist. Enter your trip details to generate a personalized packing list." },
-      { "user": "I'm going to Paris for 7 days", "assistant": "I'll create a customized packing checklist for your 7-day trip to Paris with all the essentials." },
-      { "user": "Help me pack for a beach vacation", "assistant": "I've loaded the travel checklist for a beach trip. It includes swimwear, sunscreen, and other beach essentials." },
+      { "user": "Remind me to buy groceries tomorrow", "assistant": "Here is the Reminder App. I've created a reminder for you to buy groceries tomorrow." },
+      { "user": "What are my reminders?", "assistant": "Here are your current reminders with gamification progress." },
     ],
     "openai/starterPrompts": [
-      "What should I pack for my trip?",
-      "Create a packing list for my vacation",
-      "Help me pack for an international trip",
-      "Beach vacation packing checklist",
-      "Business trip essentials",
-      "What documents do I need to travel?",
-      "Family vacation packing list",
+      "Remind me to call mom",
+      "Create a reminder for meeting",
+      "What are my todos?",
+      "Show my reminders",
+      "Help me manage tasks",
     ],
     "openai/widgetPrefersBorder": true,
     "openai/widgetCSP": {
       connect_domains: [
-        "https://travel-checklist.onrender.com"
+        "https://reminder-app.onrender.com"
       ],
       resource_domains: [
-        "https://travel-checklist.onrender.com"
+        "https://reminder-app.onrender.com"
       ],
     },
     "openai/widgetDomain": "https://web-sandbox.oaiusercontent.com",
@@ -261,41 +254,55 @@ function widgetMeta(widget: TravelChecklistWidget, bustCache: boolean = false) {
   } as const;
 }
 
-const widgets: TravelChecklistWidget[] = [
+const widgets: ReminderWidget[] = [
   {
-    id: "travel-checklist",
-    title: "Smart Travel Checklist — Generate personalized packing lists for any trip",
-    templateUri: `ui://widget/travel-checklist.html?v=${VERSION}`,
+    id: "reminder-app",
+    title: "Smart Reminder App — Create and manage reminders with gamification",
+    templateUri: `ui://widget/reminder-app.html?v=${VERSION}`,
     invoking:
-      "Opening the Smart Travel Checklist...",
+      "Opening the Smart Reminder App...",
     invoked:
-      "Here is the Smart Travel Checklist. Enter your trip details to generate a personalized packing list with documents, clothing, toiletries, and more.",
-    html: readWidgetHtml("travel-checklist"),
+      "Here is the Smart Reminder App. Create reminders, track tasks, and earn points for completing them.",
+    html: readWidgetHtml("reminder-app"),
   },
 ];
 
-const widgetsById = new Map<string, TravelChecklistWidget>();
-const widgetsByUri = new Map<string, TravelChecklistWidget>();
+const widgetsById = new Map<string, ReminderWidget>();
+const widgetsByUri = new Map<string, ReminderWidget>();
 
 widgets.forEach((widget) => {
   widgetsById.set(widget.id, widget);
   widgetsByUri.set(widget.templateUri, widget);
 });
 
+type Reminder = {
+  id: string;
+  description: string;
+  dueDate?: string;
+  category?: string;
+  priority?: 'low' | 'medium' | 'high';
+  completed: boolean;
+  recurring?: 'daily' | 'weekly' | 'monthly';
+  createdAt: string;
+};
+
+type UserGamification = {
+  points: number;
+  streak: number;
+  lastCompletedDate?: string;
+};
+
+const reminders: Reminder[] = [];
+const userGamification: UserGamification = { points: 0, streak: 0 };
+
 const toolInputSchema = {
   type: "object",
   properties: {
-    destination: { type: "string", description: "Travel destination (city, country, or region)." },
-    trip_duration: { type: "number", description: "Trip duration in days." },
-    is_international: { type: "boolean", description: "Whether this is an international trip." },
-    climate: { type: "string", enum: ["summer", "winter", "spring", "tropical", "variable"], description: "Expected weather/climate at destination." },
-    purpose: { type: "string", enum: ["leisure", "business", "adventure", "beach", "city"], description: "Primary purpose of the trip." },
-    travelers: { type: "number", description: "Number of travelers." },
-    packing_constraint: { type: "string", enum: ["carry_on_only", "checked_bags", "minimal"], description: "Luggage type constraint." },
-    has_children: { type: "boolean", description: "Whether traveling with children." },
-    has_infants: { type: "boolean", description: "Whether traveling with infants." },
-    has_pets: { type: "boolean", description: "Whether traveling with pets." },
-    activities: { type: "array", items: { type: "string" }, description: "Planned activities (hiking, beach, camping, etc.)." },
+    description: { type: "string", description: "Description of the reminder." },
+    dueDate: { type: "string", description: "Due date in ISO format (optional)." },
+    category: { type: "string", description: "Category for the reminder (optional)." },
+    priority: { type: "string", enum: ["low", "medium", "high"], description: "Priority level (optional)." },
+    recurring: { type: "string", enum: ["daily", "weekly", "monthly"], description: "Recurring frequency (optional)." },
   },
   required: [],
   additionalProperties: false,
@@ -303,47 +310,45 @@ const toolInputSchema = {
 } as const;
 
 const toolInputParser = z.object({
-  destination: z.string().optional(),
-  trip_duration: z.number().optional(),
-  is_international: z.boolean().optional(),
-  climate: z.enum(["summer", "winter", "spring", "tropical", "variable"]).optional(),
-  purpose: z.enum(["leisure", "business", "adventure", "beach", "city"]).optional(),
-  travelers: z.number().optional(),
-  packing_constraint: z.enum(["carry_on_only", "checked_bags", "minimal"]).optional(),
-  has_children: z.boolean().optional(),
-  has_infants: z.boolean().optional(),
-  has_pets: z.boolean().optional(),
-  activities: z.array(z.string()).optional(),
+  description: z.string().optional(),
+  dueDate: z.string().optional(),
+  category: z.string().optional(),
+  priority: z.enum(["low", "medium", "high"]).optional(),
+  recurring: z.enum(["daily", "weekly", "monthly"]).optional(),
 });
 
 const tools: Tool[] = widgets.map((widget) => ({
   name: widget.id,
   description:
-    "Use this to generate a personalized travel packing checklist. Helps users create customized packing lists based on their trip details. Call this tool immediately with NO arguments to let the user enter their trip details manually. Only provide arguments if the user has explicitly stated them.",
+    "Use this to create reminders or list existing ones. Provide description to create a new reminder, omit to list all reminders.",
   inputSchema: toolInputSchema,
   outputSchema: {
     type: "object",
     properties: {
       ready: { type: "boolean" },
       timestamp: { type: "string" },
-      destination: { type: "string" },
-      trip_duration: { type: "number" },
-      is_international: { type: "boolean" },
-      climate: { type: "string" },
-      purpose: { type: "string" },
-      travelers: { type: "number" },
-      input_source: { type: "string", enum: ["user", "default"] },
-      summary: {
+      reminders: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            description: { type: "string" },
+            dueDate: { type: "string" },
+            category: { type: "string" },
+            priority: { type: "string" },
+            completed: { type: "boolean" },
+            recurring: { type: "string" },
+            createdAt: { type: "string" },
+          },
+        },
+      },
+      gamification: {
         type: "object",
         properties: {
-          destination: { type: ["string", "null"] },
-          trip_duration: { type: ["number", "null"] },
-          is_international: { type: ["boolean", "null"] },
-          climate: { type: ["string", "null"] },
-          purpose: { type: ["string", "null"] },
-          travelers: { type: ["number", "null"] },
-          estimated_items: { type: ["number", "null"] },
-          trip_type: { type: ["string", "null"] },
+          points: { type: "number" },
+          streak: { type: "number" },
+          lastCompletedDate: { type: "string" },
         },
       },
       suggested_followups: {
@@ -371,7 +376,7 @@ const resources: Resource[] = widgets.map((widget) => ({
   uri: widget.templateUri,
   name: widget.title,
   description:
-    "HTML template for the Travel Checklist widget that generates personalized packing lists based on trip details.",
+    "HTML template for the Reminder App widget that creates and manages reminders with gamification.",
   mimeType: "text/html+skybridge",
   _meta: widgetMeta(widget),
 }));
@@ -380,18 +385,18 @@ const resourceTemplates: ResourceTemplate[] = widgets.map((widget) => ({
   uriTemplate: widget.templateUri,
   name: widget.title,
   description:
-    "Template descriptor for the Travel Checklist widget.",
+    "Template descriptor for the Reminder App widget.",
   mimeType: "text/html+skybridge",
   _meta: widgetMeta(widget),
 }));
 
-function createTravelChecklistServer(): Server {
+function createReminderAppServer(): Server {
   const server = new Server(
     {
-      name: "travel-checklist",
+      name: "reminder-app",
       version: "0.1.0",
       description:
-        "Smart Travel Checklist helps users generate personalized packing lists based on their trip profile including destination, duration, climate, and activities.",
+        "Smart Reminder App helps users create, manage, and track reminders with gamification features.",
     },
     {
       capabilities: {
