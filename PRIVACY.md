@@ -1,7 +1,7 @@
 # Privacy Policy
 
 **Crypto Yield Optimizer**  
-*Last Updated: December 2024*
+*Last Updated: March 2026*
 
 ## Overview
 
@@ -10,17 +10,19 @@ Crypto Yield Optimizer is an educational DeFi yield optimization tool that runs 
 ## Data Collection
 
 ### What We Collect
-- **Usage Analytics**: Anonymous usage data including tool invocations, response times, and general device categories (iOS, Android, Desktop)
-- **Session Data**: Temporary session identifiers for MCP connection management
-- **Error Logs**: Anonymous error information to improve reliability
+- **Usage Analytics**: Anonymous usage data including tool invocations, response times, and general device categories (iOS, Android, Desktop). No raw user-agent strings or IP addresses are stored.
+- **Session Data**: Temporary session identifiers for MCP connection management.
+- **Error Logs**: Anonymous error information to improve reliability.
+- **Email Address** (optional): Only if you voluntarily subscribe to updates via the widget. Your email is sent to Buttondown (our email service provider) to manage the subscription.
 
 ### What We Do NOT Collect
-- Personal identification information (name, email, address)
 - Financial account credentials or banking information
 - Social Security Numbers or government IDs
 - Credit card or payment information
 - Health information
 - Precise location data
+- Raw user-agent strings or IP addresses
+- Portfolio inputs (these are processed client-side and never stored on our servers)
 
 ## Data Processing
 
@@ -32,23 +34,27 @@ All portfolio calculations and simulations are performed:
 ## Data Storage
 
 - **Browser LocalStorage**: Your portfolio inputs may be cached in your browser's localStorage for convenience (30-day expiration). This data never leaves your device.
-- **Server Logs**: Anonymous analytics are logged for up to 30 days for service improvement.
+- **Server Logs**: Anonymous analytics (event names, response times, device categories) are logged for up to 30 days for service improvement. These logs contain no personal identifiers.
+- **Email Subscriptions**: If you subscribe to updates, your email address is stored by Buttondown. You can unsubscribe at any time via the link in any email.
 
-## Third-Party Sharing
+## Third-Party Services
 
-We do not sell, rent, or share your data with third parties for marketing purposes. Anonymous, aggregated analytics may be used to improve the service.
+- **Buttondown** (email service): Receives your email address only if you opt in to updates. See [Buttondown's privacy policy](https://buttondown.email/legal/privacy) for details.
+- We do not sell, rent, or share your data with third parties for marketing purposes.
 
 ## Data Retention
 
 - **LocalStorage**: Automatically expires after 30 days
 - **Server Logs**: Retained for up to 30 days, then deleted
+- **Email Subscriptions**: Managed by Buttondown until you unsubscribe
 
 ## Your Rights
 
 You can:
 - Clear your browser's localStorage at any time to remove cached data
 - Use the tool without providing any personal information
-- Contact us with privacy concerns
+- Unsubscribe from email updates at any time via the unsubscribe link
+- Contact us with privacy concerns or data deletion requests
 
 ## Security
 
@@ -67,7 +73,6 @@ We may update this policy periodically. Significant changes will be noted in the
 ## Contact
 
 For privacy questions or data deletion requests:
-- **Email**: support@crypto-portfolio-optimizer-jn05.onrender.com
 - **GitHub**: Open an issue on the project repository
 - **Deletion requests**: Include the UTC timestamp of your ChatGPT session; we will delete associated logs within 7 business days.
 

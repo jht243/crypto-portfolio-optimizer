@@ -31,7 +31,10 @@ import {
 import { z } from "zod";
 
 type CryptoPortfolioOptimizerWidget = {
+  /** MCP `tools/list` + `tools/call` name (readable kebab-case). */
   id: string;
+  /** On-disk bundle name (`assets/{assetSlug}.html`) — stable for builds. */
+  assetSlug: string;
   title: string;
   templateUri: string;
   invoking: string;
@@ -214,13 +217,13 @@ const VERSION = (process.env.RENDER_GIT_COMMIT?.slice(0, 7) || Date.now().toStri
 
 function widgetMeta(widget: CryptoPortfolioOptimizerWidget, bustCache: boolean = false) {
   const templateUri = bustCache
-    ? `ui://widget/crypto-portfolio-optimizer.html?v=${VERSION}`
+    ? `ui://widget/${widget.assetSlug}.html?v=${VERSION}`
     : widget.templateUri;
 
   return {
     "openai/outputTemplate": templateUri,
     "openai/widgetDescription":
-      "A crypto yield optimizer educational tool that helps users simulate the best DeFi strategies to earn passive income on crypto portfolios (Bitcoin, Ethereum, Solana, etc.). Shows yield strategies like staking, lending, and liquidity provision with APY estimates. Call this tool immediately with NO arguments to let the user enter their data manually. Only provide arguments if the user has explicitly stated them.",
+      "Interactive crypto yield optimizer. The widget displays holdings inputs, yield strategies, APY estimates, and earnings summaries. All results are shown in the widget — do not add any commentary, summary, or follow-up text.",
     "openai/componentDescriptions": {
       "holdings-form": "Input form for crypto holdings (BTC, ETH, SOL, etc.) with dollar values or coin amounts.",
       "yield-display": "Display showing potential annual yield earnings based on optimized strategies.",
@@ -276,13 +279,14 @@ function widgetMeta(widget: CryptoPortfolioOptimizerWidget, bustCache: boolean =
 
 const widgets: CryptoPortfolioOptimizerWidget[] = [
   {
-    id: "crypto-portfolio-optimizer",
+    id: "optimize_portfolio",
+    assetSlug: "crypto-portfolio-optimizer",
     title: "Crypto Yield Optimizer — Simulate the best DeFi strategies to optimize passive income on a crypto portfolio",
     templateUri: `ui://widget/crypto-portfolio-optimizer.html?v=${VERSION}`,
     invoking:
       "Opening the Crypto Yield Optimizer...",
     invoked:
-      "Here is the Crypto Yield Optimizer. Enter portfolio holdings to see how much passive income the portfolio could be earning with staking, lending, and other DeFi strategies.",
+      "Crypto Yield Optimizer ready. Enter your holdings.",
     html: readWidgetHtml("crypto-portfolio-optimizer"),
   },
 ];
@@ -294,6 +298,26 @@ widgets.forEach((widget) => {
   widgetsById.set(widget.id, widget);
   widgetsByUri.set(widget.templateUri, widget);
 });
+
+/** MIME type for widget HTML per Apps SDK (enables MCP Apps host bridge). */
+const WIDGET_HTML_MIME = "text/html;profile=mcp-app" as const;
+
+/**
+ * Resolve tool name to a registered widget. ChatGPT may namespace or prefix
+ * names when bridging tools/call from the host or iframe.
+ */
+function resolveWidgetForToolCall(rawName: string | undefined): CryptoPortfolioOptimizerWidget | undefined {
+  if (rawName == null || typeof rawName !== "string") return undefined;
+  const n = rawName.trim();
+  const direct = widgetsById.get(n);
+  if (direct) return direct;
+  for (const id of widgetsById.keys()) {
+    if (n === id || n.endsWith(id) || n.endsWith(`_${id}`) || n.includes(`/${id}`)) {
+      return widgetsById.get(id);
+    }
+  }
+  return undefined;
+}
 
 const toolInputSchema = {
   type: "object",
@@ -360,35 +384,23 @@ const tools: Tool[] = widgets.map((widget) => ({
     type: "object",
     properties: {
       ready: { type: "boolean" },
-      timestamp: { type: "string" },
       btc: { type: "number" },
       eth: { type: "number" },
       sol: { type: "number" },
       current_yield_percent: { type: "number" },
       risk_preference: { type: "string", enum: ["low", "medium", "high"] },
       input_source: { type: "string", enum: ["user", "default"] },
-      summary: {
-        type: "object",
-        properties: {
-          total_portfolio: { type: ["number", "null"] },
-          current_yield_percent: { type: ["number", "null"] },
-          optimized_apy: { type: ["number", "null"] },
-          current_annual_yield: { type: ["number", "null"] },
-          potential_annual_yield: { type: ["number", "null"] },
-          additional_yield: { type: ["number", "null"] },
-          yield_status: { type: ["string", "null"] },
-        },
-      },
-      suggested_followups: {
-        type: "array",
-        items: { type: "string" },
-      },
     },
   },
   title: widget.title,
   securitySchemes: [{ type: "noauth" }],
   _meta: {
     ...widgetMeta(widget),
+    // MCP Apps standard (required for tools/call from model + widget); see Apps SDK reference
+    ui: {
+      resourceUri: widget.templateUri,
+      visibility: ["model", "app"],
+    },
     "openai/visibility": "public",
     securitySchemes: [{ type: "noauth" }],
   },
@@ -405,7 +417,7 @@ const resources: Resource[] = widgets.map((widget) => ({
   name: widget.title,
   description:
     "HTML template for the Crypto Yield Optimizer widget that helps find simulate Decentralized Finance (DeFi) strategies and optimize yield on crypto portfolios.",
-  mimeType: "text/html+skybridge",
+  mimeType: WIDGET_HTML_MIME,
   _meta: widgetMeta(widget),
 }));
 
@@ -414,14 +426,14 @@ const resourceTemplates: ResourceTemplate[] = widgets.map((widget) => ({
   name: widget.title,
   description:
     "Template descriptor for the Crypto Yield Optimizer widget.",
-  mimeType: "text/html+skybridge",
+  mimeType: WIDGET_HTML_MIME,
   _meta: widgetMeta(widget),
 }));
 
 function createCryptoYieldOptimizerServer(): Server {
   const server = new Server(
     {
-      name: "crypto-yield-optimizer",
+      name: "optimize_portfolio",
       version: "0.1.0",
       description:
         "Crypto Yield Optimizer helps users simulate the best DeFi strategies to discover passive income on a crypto (Bitcoin, Ethereum, Solana, etc.) portfolio.",
@@ -462,7 +474,7 @@ function createCryptoYieldOptimizerServer(): Server {
         contents: [
           {
             uri: widget.templateUri,
-            mimeType: "text/html+skybridge",
+            mimeType: WIDGET_HTML_MIME,
             text: htmlToSend,
             _meta: widgetMeta(widget),
           },
@@ -485,14 +497,10 @@ function createCryptoYieldOptimizerServer(): Server {
     CallToolRequestSchema,
     async (request: CallToolRequest) => {
       const startTime = Date.now();
-      let userAgentString: string | null = null;
       let deviceCategory = "Unknown";
       
-      // Log the full request to debug _meta location
-      console.log("Full request object:", JSON.stringify(request, null, 2));
-      
       try {
-        const widget = widgetsById.get(request.params.name);
+        const widget = resolveWidgetForToolCall(request.params.name);
 
         if (!widget) {
           logAnalytics("tool_call_error", {
@@ -509,22 +517,14 @@ function createCryptoYieldOptimizerServer(): Server {
         } catch (parseError: any) {
           logAnalytics("parameter_parse_error", {
             toolName: request.params.name,
-            params: request.params.arguments,
             error: parseError.message,
           });
           throw parseError;
         }
 
-        // Capture user context from _meta - try multiple locations
         const meta = (request as any)._meta || request.params?._meta || {};
-        const userLocation = meta["openai/userLocation"];
-        const userLocale = meta["openai/locale"];
         const userAgent = meta["openai/userAgent"];
-        userAgentString = typeof userAgent === "string" ? userAgent : null;
-        deviceCategory = classifyDevice(userAgentString);
-        
-        // Debug log
-        console.log("Captured meta:", { userLocation, userLocale, userAgent });
+        deviceCategory = classifyDevice(typeof userAgent === "string" ? userAgent : null);
 
         // If ChatGPT didn't pass structured arguments, try to infer key numbers from freeform text in meta
         try {
@@ -626,21 +626,8 @@ function createCryptoYieldOptimizerServer(): Server {
 
         logAnalytics("tool_call_success", {
           toolName: request.params.name,
-          params: args,
-          inferredQuery: inferredQuery.length > 0 ? inferredQuery.join(", ") : "Crypto Yield Optimizer",
           responseTime,
-
           device: deviceCategory,
-          userLocation: userLocation
-            ? {
-                city: userLocation.city,
-                region: userLocation.region,
-                country: userLocation.country,
-                timezone: userLocation.timezone,
-              }
-            : null,
-          userLocale,
-          userAgent,
         });
 
         // Use a stable template URI so toolOutput reliably hydrates the component
@@ -651,10 +638,13 @@ function createCryptoYieldOptimizerServer(): Server {
         // For the yield optimizer, expose fields relevant to crypto holdings and yield
         const structured = {
           ready: true,
-          timestamp: new Date().toISOString(),
           ...args,
           input_source: usedDefaults ? "default" : "user",
-          // Summary + follow-ups for natural language UX
+        } as const;
+
+        // Embed the widget resource in _meta to mirror official examples and improve hydration reliability
+        const metaForReturn = {
+          ...widgetMetadata,
           summary: computeSummary(args),
           suggested_followups: [
             "What's the safest way to earn yield?",
@@ -662,45 +652,25 @@ function createCryptoYieldOptimizerServer(): Server {
             "What strategies work for Bitcoin?",
             "Is staking or lending better for ETH?"
           ],
-        } as const;
-
-        // Embed the widget resource in _meta to mirror official examples and improve hydration reliability
-        const metaForReturn = {
-          ...widgetMetadata,
           "openai.com/widget": {
             type: "resource",
             resource: {
               uri: widget.templateUri,
-              mimeType: "text/html+skybridge",
+              mimeType: WIDGET_HTML_MIME,
               text: widget.html,
               title: widget.title,
             },
           },
         } as const;
 
-        console.log("[MCP] Returning outputTemplate:", (metaForReturn as any)["openai/outputTemplate"]);
-        console.log("[MCP] Returning structuredContent:", structured);
-
-        // Log success analytics
+        // Log empty vs populated result for operational monitoring
         try {
-          // Check for "empty" result - when no main crypto inputs are provided
           const hasMainInputs = args.btc || args.eth || args.sol || args.btc_amount || args.eth_amount;
-          
           if (!hasMainInputs) {
              logAnalytics("tool_call_empty", {
                toolName: request.params.name,
-               params: request.params.arguments || {},
                reason: "No crypto holdings provided"
              });
-          } else {
-          logAnalytics("tool_call_success", {
-            responseTime,
-            params: request.params.arguments || {},
-            inferredQuery: inferredQuery.join(", "),
-            userLocation,
-            userLocale,
-            device: deviceCategory,
-          });
           }
         } catch {}
 
@@ -714,10 +684,8 @@ function createCryptoYieldOptimizerServer(): Server {
       } catch (error: any) {
         logAnalytics("tool_call_error", {
           error: error.message,
-          stack: error.stack,
           responseTime: Date.now() - startTime,
           device: deviceCategory,
-          userAgent: userAgentString,
         });
         throw error;
       }
@@ -1345,8 +1313,7 @@ async function handleTrackEvent(req: IncomingMessage, res: ServerResponse) {
 async function subscribeToButtondown(email: string, topicId: string, topicName: string) {
   const BUTTONDOWN_API_KEY = process.env.BUTTONDOWN_API_KEY;
   
-  console.log("[Buttondown] subscribeToButtondown called", { email, topicId, topicName });
-  console.log("[Buttondown] API key present:", !!BUTTONDOWN_API_KEY, "length:", BUTTONDOWN_API_KEY?.length ?? 0);
+  console.log("[Buttondown] subscribeToButtondown called");
 
   if (!BUTTONDOWN_API_KEY) {
     throw new Error("BUTTONDOWN_API_KEY not set in environment variables");
@@ -1354,7 +1321,7 @@ async function subscribeToButtondown(email: string, topicId: string, topicName: 
 
   const metadata: Record<string, any> = {
     topicName,
-    source: "crypto-portfolio-optimizer",
+    source: "optimize_portfolio",
     subscribedAt: new Date().toISOString(),
   };
 
@@ -1364,7 +1331,6 @@ async function subscribeToButtondown(email: string, topicId: string, topicName: 
     metadata,
   };
 
-  console.log("[Buttondown] Sending request body:", JSON.stringify(requestBody));
 
   const response = await fetch("https://api.buttondown.email/v1/subscribers", {
     method: "POST",
@@ -1444,7 +1410,7 @@ async function updateButtondownSubscriber(email: string, topicId: string, topicN
   const updatedMetadata = {
     ...existingMetadata,
     [topicKey]: topicData,
-    source: "crypto-portfolio-optimizer",
+    source: "optimize_portfolio",
   };
 
   const updateRequestBody = {
@@ -1452,8 +1418,7 @@ async function updateButtondownSubscriber(email: string, topicId: string, topicN
     metadata: updatedMetadata,
   };
 
-  console.log("[Buttondown] updateButtondownSubscriber called", { email, topicId, topicName, subscriberId });
-  console.log("[Buttondown] Sending update request body:", JSON.stringify(updateRequestBody));
+  console.log("[Buttondown] updateButtondownSubscriber called");
 
   const updateResponse = await fetch(`https://api.buttondown.email/v1/subscribers/${subscriberId}`, {
     method: "PATCH",
@@ -1499,7 +1464,7 @@ async function handleSubscribe(req: IncomingMessage, res: ServerResponse) {
     // Support both old (settlementId/settlementName) and new (topicId/topicName) field names
     const parsed = JSON.parse(body);
     const email = parsed.email;
-    const topicId = parsed.topicId || parsed.settlementId || "crypto-portfolio-optimizer";
+    const topicId = parsed.topicId || parsed.settlementId || "optimize_portfolio";
     const topicName = parsed.topicName || parsed.settlementName || "Crypto Yield Optimizer Updates";
     if (!email || !email.includes("@")) {
       res.writeHead(400).end(JSON.stringify({ error: "Invalid email address" }));
@@ -1524,7 +1489,7 @@ async function handleSubscribe(req: IncomingMessage, res: ServerResponse) {
       const already = msg.includes('already subscribed') || msg.includes('already exists') || msg.includes('already on your list') || msg.includes('subscriber already exists') || msg.includes('already');
 
       if (already) {
-        console.log("Subscriber already on list, attempting update", { email, topicId, message: rawMessage });
+        console.log("[Buttondown] Subscriber already on list, attempting update");
         try {
           await updateButtondownSubscriber(email, topicId, topicName);
           res.writeHead(200).end(JSON.stringify({ 
@@ -1532,14 +1497,9 @@ async function handleSubscribe(req: IncomingMessage, res: ServerResponse) {
             message: "You're now subscribed to this topic!" 
           }));
         } catch (updateError: any) {
-          console.warn("Update subscriber failed, returning graceful success", {
-            email,
-            topicId,
-            error: updateError?.message,
-          });
+          console.warn("[Buttondown] Update subscriber failed, returning graceful success");
           logAnalytics("widget_notify_me_subscribe_error", {
             stage: "update",
-            email,
             error: updateError?.message,
           });
           res.writeHead(200).end(JSON.stringify({
@@ -1552,18 +1512,14 @@ async function handleSubscribe(req: IncomingMessage, res: ServerResponse) {
 
       logAnalytics("widget_notify_me_subscribe_error", {
         stage: "subscribe",
-        email,
         error: rawMessage || "unknown_error",
       });
       throw subscribeError;
     }
   } catch (error: any) {
-    console.error("Subscribe error:", error);
-    console.error("Error message:", error.message);
-    console.error("Error stack:", error.stack);
+    console.error("[Buttondown] Subscribe handler error:", error.message);
     logAnalytics("widget_notify_me_subscribe_error", {
       stage: "handler",
-      email: undefined,
       error: error.message || "unknown_error",
     });
     res.writeHead(500).end(JSON.stringify({ 

@@ -654,7 +654,7 @@ export default function YieldOptimizer({ initialData }: { initialData?: any }) {
       const response = await fetch(`${serverUrl}/api/subscribe`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, topicId: "crypto-yield-optimizer", topicName: "Crypto Yield Optimizer Updates" })
+        body: JSON.stringify({ email, topicId: "optimize_portfolio", topicName: "Crypto Yield Optimizer Updates" })
       });
       const data = await response.json();
       if (response.ok && data.success) {
